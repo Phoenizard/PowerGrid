@@ -1,6 +1,13 @@
+# External repositories (not tracked)
+GridResilience/
+
 # Output data and figures
 paper_reproduction/output/
 output/
+paper_reproductionoutput/
+
+# Claude config
+.claude/
 
 # Python
 __pycache__/
