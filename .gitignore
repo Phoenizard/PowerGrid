@@ -35,3 +35,5 @@ nul
 # Temporary files
 *.tmp
 *.log
+
+doc/
