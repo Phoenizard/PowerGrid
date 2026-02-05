@@ -1,7 +1,12 @@
 """
 Runner script for sweep computations with proper Windows multiprocessing guard.
+
+Usage:
+    python run_sweep.py              # Fast iteration mode (default)
+    python run_sweep.py --production # Final production mode
 """
 
+import argparse
 import numpy as np
 import os
 import gc
@@ -15,6 +20,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import config
 from model import generate_network, assign_power, compute_kappa_c_normalized
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Run sweep computations for Fig. 1C/1D')
+    parser.add_argument('--production', action='store_true',
+                        help='Use final production mode (ENSEMBLE=200, STEP=2)')
+    return parser.parse_args()
 
 
 def compute_single_config(args):
@@ -51,7 +63,7 @@ def generate_simplex_points(n, step):
     return points
 
 
-def run_simplex_sweep():
+def run_simplex_sweep(ensemble_size, step_size):
     """Run simplex sweep for Fig. 1C."""
     print("=" * 60)
     print("SIMPLEX SWEEP (Fig. 1C)")
@@ -61,8 +73,8 @@ def run_simplex_sweep():
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
 
     q = 0.0
-    n_realizations = config.ENSEMBLE_SIZE
-    step = config.STEP_SIZE
+    n_realizations = ensemble_size
+    step = step_size
 
     print(f"Parameters: q={q}, realizations={n_realizations}, step={step}")
 
@@ -109,7 +121,7 @@ def run_simplex_sweep():
     return output_file
 
 
-def run_cross_section_sweep():
+def run_cross_section_sweep(ensemble_size):
     """Run cross-section sweep for Fig. 1D."""
     print("\n" + "=" * 60)
     print("CROSS-SECTION SWEEP (Fig. 1D)")
@@ -119,7 +131,7 @@ def run_cross_section_sweep():
     os.makedirs(config.OUTPUT_DIR, exist_ok=True)
 
     q_values = config.Q_VALUES
-    n_realizations = config.ENSEMBLE_SIZE
+    n_realizations = ensemble_size
     n_passive = config.NP_CROSS
     n_active = config.N - n_passive
 
@@ -165,13 +177,26 @@ if __name__ == '__main__':
     except RuntimeError:
         pass  # Already set
 
+    args = parse_args()
+
+    # Set parameters based on mode
+    if args.production:
+        ensemble_size = config.ENSEMBLE_SIZE_FINAL
+        step_size = config.STEP_SIZE_FINAL
+        mode_name = "PRODUCTION"
+    else:
+        ensemble_size = config.ENSEMBLE_SIZE
+        step_size = config.STEP_SIZE
+        mode_name = "FAST ITERATION"
+
     print(f"Python: {sys.version}")
     print(f"Working dir: {os.getcwd()}")
-    print(f"Config: N={config.N}, ENSEMBLE={config.ENSEMBLE_SIZE}, STEP={config.STEP_SIZE}")
+    print(f"Mode: {mode_name}")
+    print(f"Config: N={config.N}, ENSEMBLE={ensemble_size}, STEP={step_size}")
     print()
 
-    run_simplex_sweep()
-    run_cross_section_sweep()
+    run_simplex_sweep(ensemble_size, step_size)
+    run_cross_section_sweep(ensemble_size)
 
     print("\n" + "=" * 60)
     print("ALL COMPUTATIONS COMPLETE!")

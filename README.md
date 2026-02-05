@@ -316,6 +316,22 @@ mean_kappa = data['mean_kappa']
 print(f"κ_c 范围: [{mean_kappa.min():.4f}, {mean_kappa.max():.4f}]")
 ```
 
+### Q: Fig 1D 横坐标范围 1-34 是怎么来的？
+
+横坐标 $n_-$ 的最大值 34 来自于：
+
+$$n_{\text{active}} = N - n_0 = 50 - 16 = 34$$
+
+其中：
+- $N = 50$：总节点数
+- $n_0 = 16$：cross-section 中固定的被动节点数（`NP_CROSS`）
+
+活跃节点由生产者和消费者组成，满足 $n_+ + n_- = 34$。因此：
+- $n_-$ 最小为 1（至少有一个消费者）
+- $n_-$ 最大为 33（至少保留一个生产者 $n_+ \geq 1$）
+
+这条截面线对应三元单纯形（Fig 1C）中固定 $n_0 = 16$ 的水平切线，用于展示不同网络重连概率 $q$ 对临界耦合强度 $\kappa_c$ 的影响。
+
 ## 参考文献
 
 Smith, P. J., et al. "The role of passive agents in power grid resilience." *Science Advances* 8, eabj6734 (2022).
