@@ -38,7 +38,7 @@ OUTPUT_DIR = 'output'
 # Scale factor to match original paper's kappa values
 # Our model produces ~2x higher values due to convergence criterion differences
 # Original data shows κ_c ∈ [0.36, 0.52], calibrated from GridResilience repo
-KAPPA_SCALE_FACTOR = 0.5
+KAPPA_SCALE_FACTOR = 1.0
 
 # === Cross-section parameters (for Fig.1D) ===
 # Cross-section (i) at np ≈ 16, so n+ + n- = 34
