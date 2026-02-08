@@ -160,7 +160,7 @@ For statistical reliability, we repeat the κ_c computation over **ensemble real
 
 ## 4. Results
 
-![](../../fig/Reproduction.png)
+![results](Reproduction.png)
 
 ### 4.1 Figure 1C: Ternary Simplex Heatmap
 
