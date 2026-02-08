@@ -160,9 +160,9 @@ For statistical reliability, we repeat the κ_c computation over **ensemble real
 
 ## 4. Results
 
-### 4.1 Figure 1C: Ternary Simplex Heatmap
+![](../../fig/Reproduction.png)
 
-![Figure 1C - Simplex](attachment)
+### 4.1 Figure 1C: Ternary Simplex Heatmap
 
 **Configuration Space:**
 - **Triangle vertices:**
@@ -189,8 +189,6 @@ For statistical reliability, we repeat the κ_c computation over **ensemble real
 - **Least stable:** (n₊, n₋, n₀) ≈ (1, 49, 0) → $\bar{\kappa}_c$ ≈ 0.47
 
 ### 4.2 Figure 1D: Cross-Section Analysis
-
-![Figure 1D - Cross-section](attachment)
 
 **Fixed Parameters:** n₀ = 16, so n₊ + n₋ = 34
 
