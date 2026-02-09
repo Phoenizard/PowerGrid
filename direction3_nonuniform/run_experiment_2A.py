@@ -46,14 +46,24 @@ SIM_CONFIG = {
     "max_step": 5.0,
 }
 
+PROD_SIM_CONFIG = {
+    "gamma": GAMMA,
+    "kappa_range": (0.001, 3.0),
+    "bisection_steps": 20,
+    "t_integrate": 100,
+    "conv_tol": 1e-3,
+    "max_step": 1.0,
+}
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run Experiment 2A")
     parser.add_argument("--n_ensemble", type=int, default=200)
+    parser.add_argument("--output", type=str, default=None)
     parser.add_argument(
-        "--output",
-        type=str,
-        default=os.path.join(SCRIPT_DIR, "results", "results_2A.csv"),
+        "--production",
+        action="store_true",
+        help="Use production simulation parameters (bisection_steps=20, t_integrate=100, conv_tol=1e-3)",
     )
     return parser.parse_args()
 
@@ -102,7 +112,9 @@ def map_ordered_power_to_nodes(p_ordered: np.ndarray, generator_indices: np.ndar
     return p
 
 
-def run_for_sigma(sigma_ratio: float, n_ensemble: int, rng: np.random.Generator):
+def run_for_sigma(sigma_ratio: float, n_ensemble: int, rng: np.random.Generator, sim_config: dict = None):
+    if sim_config is None:
+        sim_config = SIM_CONFIG
     kcs_gen = []
     kcs_con = []
 
@@ -135,8 +147,8 @@ def run_for_sigma(sigma_ratio: float, n_ensemble: int, rng: np.random.Generator)
             p_gen = map_ordered_power_to_nodes(p_gen_ordered, generator_indices, consumer_indices)
             p_con = map_ordered_power_to_nodes(p_con_ordered, generator_indices, consumer_indices)
 
-            kc_gen = compute_kappa_c_normalized(a, p_gen, P_MAX, config_params=SIM_CONFIG)
-            kc_con = compute_kappa_c_normalized(a, p_con, P_MAX, config_params=SIM_CONFIG)
+            kc_gen = compute_kappa_c_normalized(a, p_gen, P_MAX, config_params=sim_config)
+            kc_con = compute_kappa_c_normalized(a, p_con, P_MAX, config_params=sim_config)
 
             print(
                 f"[sigma_ratio={sigma_ratio}] instance {i}/{n_ensemble}, "
@@ -165,6 +177,18 @@ def run_for_sigma(sigma_ratio: float, n_ensemble: int, rng: np.random.Generator)
 
 def main():
     args = parse_args()
+
+    if args.production:
+        sim_config = PROD_SIM_CONFIG
+        if args.output is None:
+            args.output = os.path.join(SCRIPT_DIR, "results_prod", "results_2A.csv")
+        print("Using PRODUCTION simulation config")
+    else:
+        sim_config = SIM_CONFIG
+        if args.output is None:
+            args.output = os.path.join(SCRIPT_DIR, "results", "results_2A.csv")
+        print("Using DEV simulation config")
+
     ensure_output_csv(args.output)
 
     completed = load_completed_sigma(args.output)
@@ -179,7 +203,9 @@ def main():
             continue
 
         print(f"Start sigma_ratio={sigma_ratio}")
-        mean_gen, std_gen, mean_con, std_con = run_for_sigma(sigma_ratio, args.n_ensemble, rng)
+        mean_gen, std_gen, mean_con, std_con = run_for_sigma(
+            sigma_ratio, args.n_ensemble, rng, sim_config=sim_config
+        )
 
         append_row(args.output, [sigma_ratio, mean_gen, std_gen, mean_con, std_con])
         print(
