@@ -46,14 +46,24 @@ SIM_CONFIG = {
     "max_step": 5.0,
 }
 
+PROD_SIM_CONFIG = {
+    "gamma": GAMMA,
+    "kappa_range": (0.001, 3.0),
+    "bisection_steps": 20,
+    "t_integrate": 100,
+    "conv_tol": 1e-3,
+    "max_step": 1.0,
+}
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run Experiment 2C")
     parser.add_argument("--n_ensemble", type=int, default=200)
+    parser.add_argument("--output", type=str, default=None)
     parser.add_argument(
-        "--output",
-        type=str,
-        default=os.path.join(SCRIPT_DIR, "results", "results_2C.csv"),
+        "--production",
+        action="store_true",
+        help="Use production simulation parameters (bisection_steps=20, t_integrate=100, conv_tol=1e-3)",
     )
     return parser.parse_args()
 
@@ -106,7 +116,9 @@ def build_node_power_for_centralized(r: float, rng: np.random.Generator) -> np.n
     return p
 
 
-def run_for_r(r: float, n_ensemble: int, rng: np.random.Generator):
+def run_for_r(r: float, n_ensemble: int, rng: np.random.Generator, sim_config: dict = None):
+    if sim_config is None:
+        sim_config = SIM_CONFIG
     kcs = []
 
     for i in range(1, n_ensemble + 1):
@@ -114,7 +126,7 @@ def run_for_r(r: float, n_ensemble: int, rng: np.random.Generator):
             net_seed = int(rng.integers(0, 2**31 - 1))
             a = generate_network(n=N, k=K, q=Q, seed=net_seed)
             p = build_node_power_for_centralized(r, rng)
-            kc = compute_kappa_c_normalized(a, p, P_MAX, config_params=SIM_CONFIG)
+            kc = compute_kappa_c_normalized(a, p, P_MAX, config_params=sim_config)
 
             print(f"[r={r}] instance {i}/{n_ensemble}, kappa_c={kc:.6f}")
             kcs.append(float(kc))
@@ -131,6 +143,18 @@ def run_for_r(r: float, n_ensemble: int, rng: np.random.Generator):
 
 def main():
     args = parse_args()
+
+    if args.production:
+        sim_config = PROD_SIM_CONFIG
+        if args.output is None:
+            args.output = os.path.join(SCRIPT_DIR, "results_prod", "results_2C.csv")
+        print("Using PRODUCTION simulation config")
+    else:
+        sim_config = SIM_CONFIG
+        if args.output is None:
+            args.output = os.path.join(SCRIPT_DIR, "results", "results_2C.csv")
+        print("Using DEV simulation config")
+
     ensure_output_csv(args.output)
 
     completed = load_completed_r(args.output)
@@ -145,7 +169,7 @@ def main():
             continue
 
         print(f"Start r={r}")
-        mean_k, std_k = run_for_r(r, args.n_ensemble, rng)
+        mean_k, std_k = run_for_r(r, args.n_ensemble, rng, sim_config=sim_config)
         append_row(args.output, [r, mean_k, std_k])
         print(f"Saved r={r}: mean={mean_k:.6f}, std={std_k:.6f}")
 
