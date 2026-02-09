@@ -4,6 +4,7 @@ GridResilience/
 # Output data and figures
 paper_reproduction/output/
 output/
+final_results/
 paper_reproductionoutput/
 
 # Claude config
