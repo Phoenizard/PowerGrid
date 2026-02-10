@@ -64,7 +64,7 @@ def main():
     args = parse_args()
 
     if args.output_dir is None:
-        args.output_dir = os.path.join(SCRIPT_DIR, "results_sq2")
+        args.output_dir = os.path.join(SCRIPT_DIR, "results_sq2_A")
 
     os.makedirs(args.output_dir, exist_ok=True)
 

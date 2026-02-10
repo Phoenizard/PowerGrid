@@ -20,6 +20,7 @@ from __future__ import annotations
 import glob
 import os
 from functools import lru_cache
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -309,3 +310,117 @@ def build_microgrid(
         P[n_houses, t_idx] = -np.sum(P[:n_houses, t_idx])
 
     return P, _T_WEEK.copy()
+
+
+def build_microgrid_interpolators(
+    lcl_dir: str,
+    pv_hourly_path: str,
+    season: str = "summer",
+    n_houses: int = 49,
+    penetration: int = 49,
+    seed: int | None = None,
+) -> tuple[list[interp1d], list[interp1d]]:
+    """
+    Build consumption + PV interpolators without evaluating at a fixed grid.
+
+    Same random sampling logic as build_microgrid(), but returns the raw
+    interpolator objects so callers can evaluate at arbitrary times.
+
+    Returns
+    -------
+    consumption_interps : list of interp1d, length n_houses
+    pv_interps : list of interp1d, length penetration
+    """
+    rng = RandomState(seed)
+    target_month = _month_for_season(season)
+
+    consumption_interps: list[interp1d] = []
+    attempts = 0
+    while len(consumption_interps) < n_houses:
+        attempts += 1
+        if attempts > n_houses * 20:
+            raise RuntimeError(
+                f"Could not build {n_houses} consumption profiles "
+                f"(got {len(consumption_interps)} after {attempts} attempts)"
+            )
+        interp = make_consumption_interpolator(lcl_dir, target_month, rng)
+        if interp is not None:
+            consumption_interps.append(interp)
+
+    pv_interps: list[interp1d] = []
+    attempts = 0
+    while len(pv_interps) < penetration:
+        attempts += 1
+        if attempts > penetration * 20:
+            raise RuntimeError(
+                f"Could not build {penetration} PV profiles "
+                f"(got {len(pv_interps)} after {attempts} attempts)"
+            )
+        interp = make_pv_interpolator(pv_hourly_path, target_month, rng)
+        if interp is not None:
+            pv_interps.append(interp)
+
+    return consumption_interps, pv_interps
+
+
+def evaluate_power_vector(
+    consumption_interps: list[interp1d],
+    pv_interps: list[interp1d],
+    t_seconds: float,
+) -> np.ndarray:
+    """
+    Evaluate net power P at a single time point.
+
+    Parameters
+    ----------
+    consumption_interps : list of interp1d, length n_houses
+    pv_interps : list of interp1d, length penetration (≤ n_houses)
+    t_seconds : float, time in seconds within [0, 604800]
+
+    Returns
+    -------
+    P : ndarray, shape (n_houses + 1,)
+        Net power for each house node + PCC.
+    """
+    n_houses = len(consumption_interps)
+    penetration = len(pv_interps)
+    n_total = n_houses + 1
+    P = np.zeros(n_total)
+
+    for i in range(n_houses):
+        consumption = float(consumption_interps[i](t_seconds))
+        if i < penetration:
+            generation = float(pv_interps[i](t_seconds))
+            P[i] = generation - consumption
+        else:
+            P[i] = -consumption
+
+    # PCC balances the grid
+    P[n_houses] = -np.sum(P[:n_houses])
+    return P
+
+
+def compute_pmax_from_interpolators(
+    consumption_interps: Sequence[interp1d],
+    pv_interps: Sequence[interp1d],
+) -> float:
+    """
+    Compute P_max = max(|P_house|) over the 264-step time grid.
+
+    Consistent with SQ2-A: evaluates at _T_WEEK (same grid as build_microgrid),
+    uses only house nodes (excludes PCC).
+    """
+    n_houses = len(consumption_interps)
+    penetration = len(pv_interps)
+    P_house = np.zeros((n_houses, N_TIMESTEPS))
+
+    for t_idx, t_sec in enumerate(_T_WEEK):
+        for i in range(n_houses):
+            consumption = float(consumption_interps[i](t_sec))
+            if i < penetration:
+                generation = float(pv_interps[i](t_sec))
+                P_house[i, t_idx] = generation - consumption
+            else:
+                P_house[i, t_idx] = -consumption
+
+    return float(np.max(np.abs(P_house)))

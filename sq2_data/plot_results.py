@@ -200,28 +200,24 @@ def plot_kappa_timeseries(results_dir: str, output_dir: str, season: str):
 def main():
     args = parse_args()
 
-    if args.results_dir is None:
-        # Try production first, then fast
-        prod_dir = os.path.join(SCRIPT_DIR, "results_sq2")
-        fast_dir = os.path.join(SCRIPT_DIR, "results_sq2_fast")
-        if os.path.isdir(prod_dir):
-            args.results_dir = prod_dir
-        elif os.path.isdir(fast_dir):
-            args.results_dir = fast_dir
-        else:
-            print("No results directory found. Run experiments first.")
-            return
+    dir_a = os.path.join(SCRIPT_DIR, "results_sq2_A")
+    dir_b = os.path.join(SCRIPT_DIR, "results_sq2_B")
+
+    if args.results_dir is not None:
+        # Explicit dir: use it for both plots
+        dir_a = dir_b = args.results_dir
 
     if args.output_dir is None:
-        args.output_dir = os.path.join(args.results_dir, "figures")
+        args.output_dir = os.path.join(dir_b, "figures")
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    print(f"Results dir: {args.results_dir}")
+    print(f"Results dir A (trajectory): {dir_a}")
+    print(f"Results dir B (kappa):      {dir_b}")
     print(f"Output dir: {args.output_dir}")
 
-    plot_trajectory(args.results_dir, args.output_dir, args.season)
-    plot_kappa_timeseries(args.results_dir, args.output_dir, args.season)
+    plot_trajectory(dir_a, args.output_dir, args.season)
+    plot_kappa_timeseries(dir_b, args.output_dir, args.season)
 
     print("\nAll plots done.")
 
