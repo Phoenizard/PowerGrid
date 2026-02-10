@@ -78,6 +78,8 @@ def parse_args():
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--fast", action="store_true", help="Use fast config (dev)")
     mode.add_argument("--production", action="store_true", help="Use production config")
+    parser.add_argument("--clean", action="store_true",
+                        help="Delete existing results before running")
 
     return parser.parse_args()
 
@@ -145,6 +147,11 @@ def main():
         args.output_dir = default_dir
 
     output_path = os.path.join(args.output_dir, f"kappa_c_timeseries_{args.season}.csv")
+
+    if args.clean and os.path.exists(output_path):
+        os.remove(output_path)
+        print(f"  Cleaned: {output_path}")
+
     ensure_output_csv(output_path)
 
     completed = load_completed_points(output_path)
@@ -165,6 +172,7 @@ def main():
     sys.stdout.flush()
     ensemble_P = []      # list of (51, 336) arrays
     ensemble_A = []      # list of csr_matrix (51, 51)
+    ensemble_Pmax = []   # list of float: per-instance P_max (house nodes only)
     n_loaded = 0
 
     for i in range(args.n_ensemble):
@@ -183,8 +191,10 @@ def main():
             A = generate_network_with_pcc(
                 n_houses=N_HOUSES, k=4, q=0.1, n_pcc_links=4, seed=net_seed
             )
+            P_max_i = float(np.max(np.abs(P[:N_HOUSES, :])))
             ensemble_P.append(P)
             ensemble_A.append(A)
+            ensemble_Pmax.append(P_max_i)
             n_loaded += 1
             print(f"  Loaded instance {i+1}/{args.n_ensemble}")
             sys.stdout.flush()
@@ -193,6 +203,7 @@ def main():
             traceback.print_exc()
             ensemble_P.append(None)
             ensemble_A.append(None)
+            ensemble_Pmax.append(None)
 
     print(f"Pre-loading done: {n_loaded}/{args.n_ensemble} instances loaded\n")
     sys.stdout.flush()
@@ -210,15 +221,15 @@ def main():
         for i in range(args.n_ensemble):
             P = ensemble_P[i]
             A = ensemble_A[i]
-            if P is None or A is None:
+            P_max = ensemble_Pmax[i]
+            if P is None or A is None or P_max is None:
+                continue
+
+            if P_max < 1e-12:
                 continue
 
             try:
                 P_t = P[:, t_idx]
-                P_max = np.max(np.abs(P_t))
-
-                if P_max < 1e-12:
-                    continue
 
                 kc = compute_kappa_c(A, P_t, config_params=sim_config)
                 kc_normalized = kc / P_max
@@ -233,14 +244,17 @@ def main():
             sys.stdout.flush()
             continue
 
-        mean_kc = float(np.mean(kappa_values))
-        std_kc = float(np.std(kappa_values))
+        kv = np.array(kappa_values)
+        mean_kc = float(np.mean(kv))
+        std_kc = float(np.std(kv))
+        n_small = int(np.sum(kv < 0.01))
 
         append_row(output_path, [day, hour, f"{mean_kc:.6f}", f"{std_kc:.6f}"])
         print(
             f"  Saved day={day} hour={hour:02d}: "
             f"kappa_c_mean={mean_kc:.6f}, kappa_c_std={std_kc:.6f} "
-            f"(n={len(kappa_values)})"
+            f"(n={len(kappa_values)}, min={float(kv.min()):.6f}, "
+            f"max={float(kv.max()):.6f}, n_small={n_small})"
         )
         sys.stdout.flush()
 

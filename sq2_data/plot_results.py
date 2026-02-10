@@ -64,6 +64,7 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
     points = list(zip(eta_plus, eta_minus, eta_p))
 
     fig, tax = ternary.figure(scale=scale)
+    fig.set_size_inches(10, 8)
     tax.boundary(linewidth=1.5)
     tax.gridlines(multiple=0.1, color="gray", linewidth=0.3, alpha=0.5)
 
@@ -82,35 +83,39 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
     for i, pt in enumerate(points):
         tax.scatter([pt], marker="o", s=3, color=[colors[i]], zorder=5)
 
-    # Annotate midnight (hour=0, 24, 48, ...) and midday (hour=12, 36, 60, ...)
+    # Mark midnight (blue square) and midday (red diamond) positions
+    # Only add text labels for D1 to avoid overlap
     for t_idx, h in enumerate(hours):
         if h % 24.0 == 0.0:  # midnight
             day = int(h // 24)
             tax.scatter(
-                [points[t_idx]], marker="s", s=40, color="blue", zorder=10,
+                [points[t_idx]], marker="s", s=25, color="blue", zorder=10,
             )
-            tax.annotate(
-                f"D{day+1} 00:00", points[t_idx],
-                fontsize=6, ha="left", va="bottom",
-                xytext=(5, 5), textcoords="offset points",
-            )
+            if day == 0:  # Only label D1 midnight
+                tax.annotate(
+                    "Night 00:00", points[t_idx],
+                    fontsize=7, ha="left", va="bottom",
+                    xytext=(5, 5), textcoords="offset points",
+                )
         elif h % 24.0 == 12.0:  # midday
             day = int(h // 24)
             tax.scatter(
-                [points[t_idx]], marker="D", s=40, color="red", zorder=10,
+                [points[t_idx]], marker="D", s=25, color="red", zorder=10,
             )
-            tax.annotate(
-                f"D{day+1} 12:00", points[t_idx],
-                fontsize=6, ha="left", va="bottom",
-                xytext=(5, 5), textcoords="offset points",
-            )
+            if day == 0:  # Only label D1 midday
+                tax.annotate(
+                    "Day 12:00", points[t_idx],
+                    fontsize=7, ha="left", va="bottom",
+                    xytext=(5, 5), textcoords="offset points",
+                )
 
     # Labels
     tax.left_axis_label("Consumers ($\\eta^-$)", fontsize=11, offset=0.16)
     tax.right_axis_label("Generators ($\\eta^+$)", fontsize=11, offset=0.16)
     tax.bottom_axis_label("Passive ($\\eta_p$)", fontsize=11, offset=0.06)
 
-    tax.ticks(axis="lbr", linewidth=0.5, multiple=0.2, fontsize=8, offset=0.02)
+    tax.ticks(axis="lbr", linewidth=0.5, multiple=0.2, fontsize=8, offset=0.02,
+              tick_formats="%.1f")
     tax.clear_matplotlib_ticks()
     tax.get_axes().set_aspect("equal")
 
@@ -121,7 +126,7 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
     )
     sm.set_array([])
     cbar = plt.colorbar(sm, ax=tax.get_axes(), fraction=0.03, pad=0.08)
-    cbar.set_label("Hour of week", fontsize=10)
+    cbar.set_label("Hours from Monday 00:00", fontsize=10)
 
     tax.set_title(
         f"Simplex Trajectory — {season.capitalize()} Week",
@@ -159,7 +164,7 @@ def plot_kappa_timeseries(results_dir: str, output_dir: str, season: str):
     ax.plot(x, kc_mean, "b-", linewidth=1.5, label="$\\bar{\\kappa}_c / P_{\\max}$")
     ax.fill_between(
         x,
-        kc_mean - kc_std,
+        np.maximum(kc_mean - kc_std, 0),
         kc_mean + kc_std,
         alpha=0.25,
         color="blue",

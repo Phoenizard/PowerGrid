@@ -4,8 +4,8 @@ Experiment 3A: Track microgrid simplex trajectory over one summer week.
 For each ensemble instance:
   1. Load random LCL + PV data for a summer week (336 half-hour steps)
   2. Compute net power P(t) for 50 houses + 1 PCC
-  3. Compute simplex coordinates (eta+, eta-, eta_p) at each timestep
-     using only the 50 house nodes (excluding PCC)
+  3. Compute continuous simplex densities (sigma_s, sigma_d, sigma_p)
+     using ALL 51 nodes (including PCC), matching GridResilience convention
   4. Store trajectory (336, 3)
 
 Output: mean/std of trajectories across ensemble → CSV.
@@ -48,6 +48,8 @@ def parse_args():
     parser.add_argument("--season", type=str, default="summer")
     parser.add_argument("--output_dir", type=str, default=None)
     parser.add_argument("--seed", type=int, default=20260209)
+    parser.add_argument("--clean", action="store_true",
+                        help="Delete existing results before running")
     return parser.parse_args()
 
 
@@ -59,6 +61,17 @@ def main():
 
     os.makedirs(args.output_dir, exist_ok=True)
     output_path = os.path.join(args.output_dir, f"trajectory_{args.season}.csv")
+
+    if args.clean:
+        # Remove trajectory CSV and figures
+        if os.path.exists(output_path):
+            os.remove(output_path)
+            print(f"  Cleaned: {output_path}")
+        fig_dir = os.path.join(args.output_dir, "figures")
+        if os.path.isdir(fig_dir):
+            import shutil
+            shutil.rmtree(fig_dir)
+            print(f"  Cleaned: {fig_dir}")
 
     print(f"Experiment 3A: Simplex trajectory")
     print(f"  Season: {args.season}")
@@ -86,12 +99,26 @@ def main():
             # Compute net power (51 nodes x 336 steps)
             P = compute_net_power(consumption, generation)
 
+            # Diagnostic: print data magnitudes for first instance
+            if i == 1:
+                midday_idx = list(range(24, 336, 48))  # 12:00 each day
+                print(f"\n=== Diagnostic (instance 1) ===")
+                print(f"Consumption - overall mean: {consumption.mean():.4f}")
+                print(f"Consumption - midday mean:  {consumption[:, midday_idx].mean():.4f}")
+                print(f"PV generation - overall mean: {generation.mean():.4f}")
+                print(f"PV generation - midday mean:  {generation[:, midday_idx].mean():.4f}")
+                net = generation - consumption
+                midday_net = net[:, midday_idx]
+                print(f"Midday net mean: {midday_net.mean():.4f}")
+                print(f"Midday fraction net>0: {(midday_net > 0).mean():.2%}")
+                print()
+
             # Verify power balance
             balance = np.abs(P.sum(axis=0))
             assert np.all(balance < 1e-10), f"Power balance violation: max={balance.max()}"
 
-            # Compute simplex trajectory (house nodes only)
-            traj = compute_simplex_trajectory(P, n_houses=N_HOUSES)
+            # Compute simplex trajectory (all nodes incl. PCC)
+            traj = compute_simplex_trajectory(P)
             all_trajectories.append(traj)
 
             if time_index_ref is None:

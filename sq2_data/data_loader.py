@@ -49,7 +49,7 @@ def load_lcl_households(
     Returns
     -------
     consumption : ndarray, shape (n_households, 336)
-        Power consumption in kW (KWH/hh * 2).
+        Power consumption in kWh/hh (raw LCL values, matching GridResilience convention).
     time_index : pd.DatetimeIndex, length 336
         Half-hourly timestamps for the selected week.
     """
@@ -152,8 +152,8 @@ def load_lcl_households(
         # If still NaN (household has no data this week), use the household's mean
         if week_data.isna().any():
             week_data = week_data.fillna(series.mean())
-        # Convert KWH/hh to kW: multiply by 2 (0.5h interval → kW)
-        consumption[i, :] = week_data.values * 2.0
+        # Keep raw KWH/hh values (no ×2 conversion) to match GridResilience convention
+        consumption[i, :] = week_data.values
 
     return consumption, time_index
 
