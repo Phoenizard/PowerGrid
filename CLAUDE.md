@@ -64,6 +64,12 @@ For ANY experiment involving ensemble runs:
 2. **Then**: n_ensemble = 50 (check convergence, compare with n=10)
 3. **Finally**: n_ensemble = 200 (production run)
 
+### Plan Deviation Rule
+**If the implementation deviates from the approved plan (e.g., formula direction wrong, assumptions invalid, approach fundamentally changes), STOP and discuss with Phoenizard BEFORE executing the revised approach.** Do NOT silently redesign and run a multi-hour computation. Specifically:
+- If a core assumption in the plan turns out to be wrong → STOP, explain the issue, propose alternatives
+- If the revised approach changes runtime by >3× → STOP, get approval first
+- If the physics/math interpretation differs from the plan → STOP, discuss before coding
+
 ### Checkpoint & Report Rule
 **STOP and report to Phoenizard (PI) before proceeding to the next experiment or phase.**
 Specifically:
