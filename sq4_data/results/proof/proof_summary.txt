@@ -1,0 +1,52 @@
+SQ4-B Lower Bound Verification — Proof Summary
+======================================================================
+Date: 2026-02-11
+Ensemble: n=50, seed=20260211
+Lower bound formula: |P_PCC / P_max| / (d0 + m)
+D0 = 4, PCC_IDX = 49
+All quantities normalized by P_max = max(|P_house|) over 264 timesteps
+
+Ensemble |P_PCC|/P_max at noon: 20.8467 +/- 2.3220
+P_max (houses): mean = 2.6792 kW
+
+  m   d0+m        LB    Obs kc    Ratio     Gap%   PASS
+-------------------------------------------------------
+  0      4    5.2117    6.4206    1.232   +23.2%    YES
+  1      5    4.1693    5.1498    1.235   +23.5%    YES
+  2      6    3.4744    4.2639    1.227   +22.7%    YES
+  4      8    2.6058    3.2272    1.238   +23.8%    YES
+  6     10    2.0847    2.6001    1.247   +24.7%    YES
+  8     12    1.7372    2.1571    1.242   +24.2%    YES
+ 10     14    1.4890    1.8897    1.269   +26.9%    YES
+ 15     19    1.0972    1.4133    1.288   +28.8%    YES
+ 20     24    0.8686    1.1123    1.281   +28.1%    YES
+-------------------------------------------------------
+
+Lower bound holds for all m: YES
+
+Empirical fit: C_fit / (d0 + m)
+  C_fit = kc_noon_mean(m=0) * D0 = 6.4206 * 4 = 25.6822
+
+  m    Obs kc       Fit    Resid%
+-----------------------------------
+  0    6.4206    6.4206     +0.0%
+  1    5.1498    5.1364     +0.3%
+  2    4.2639    4.2804     -0.4%
+  4    3.2272    3.2103     +0.5%
+  6    2.6001    2.5682     +1.2%
+  8    2.1571    2.1402     +0.8%
+ 10    1.8897    1.8344     +2.9%
+ 15    1.4133    1.3517     +4.4%
+ 20    1.1123    1.0701     +3.8%
+-----------------------------------
+
+Overall verdict: PASS
+
+Interpretation:
+  The analytic lower bound |P_PCC/P_max| / (d0 + m) is a necessary
+  condition for stability. The observed kappa_c exceeds this bound
+  for all m values, confirming the formula provides a valid
+  (conservative) lower bound on grid coupling requirements.
+  The empirical fit C/(d0+m) captures the 1/(d0+m) scaling but
+  with a larger numerator, indicating the true critical coupling
+  exceeds the minimum required by the PCC power constraint alone.
