@@ -158,7 +158,8 @@ def plot_4b3_kc_vs_m(summary_path: str, out_dir: str):
     ax.set_title(f"Critical coupling vs added edges ({strategy})")
     ax.legend()
     ax.grid(True, alpha=0.3)
-    out = os.path.join(out_dir, "fig_4b3_kc_vs_m.png")
+    stag = f"_{strategy}" if strategy != "best" else ""
+    out = os.path.join(out_dir, f"fig_4b3_kc_vs_m{stag}.png")
     fig.savefig(out, bbox_inches="tight")
     plt.close(fig)
     print(f"  Saved: {out}")
@@ -174,7 +175,8 @@ def plot_4b4_ratio_vs_m(summary_path: str, out_dir: str):
     strategy = df["strategy"].iloc[0] if "strategy" in df.columns else "best"
     ax.set_title(f"Diurnal vulnerability ratio vs added edges ({strategy})")
     ax.grid(True, alpha=0.3)
-    out = os.path.join(out_dir, "fig_4b4_ratio_vs_m.png")
+    stag = f"_{strategy}" if strategy != "best" else ""
+    out = os.path.join(out_dir, f"fig_4b4_ratio_vs_m{stag}.png")
     fig.savefig(out, bbox_inches="tight")
     plt.close(fig)
     print(f"  Saved: {out}")
@@ -187,6 +189,8 @@ def main():
                         help="Which experiment figures to generate")
     parser.add_argument("--m", type=int, default=4,
                         help="m value for strategy comparison plots")
+    parser.add_argument("--strategy", type=str, default=None,
+                        help="Strategy name for 4b2 summary CSV filename")
     args = parser.parse_args()
 
     _setup_style()
@@ -212,7 +216,11 @@ def main():
             print(f"  WARN: {summary_4b1} not found, skipping 4B-S1 figures")
 
     if args.exp in ("all", "4b2"):
-        summary_4b2 = os.path.join(RESULTS_DIR, "exp4B_s2", "sq4b_step2_m_sweep.csv")
+        if args.strategy:
+            fname = f"sq4b_step2_m_sweep_{args.strategy}.csv"
+        else:
+            fname = "sq4b_step2_m_sweep.csv"
+        summary_4b2 = os.path.join(RESULTS_DIR, "exp4B_s2", fname)
         if os.path.exists(summary_4b2):
             print("Generating Exp 4B-S2 figures...")
             plot_4b3_kc_vs_m(summary_4b2, FIGURES_DIR)

@@ -171,7 +171,7 @@ def main():
         )
 
     # Summary
-    summary_path = os.path.join(results_dir, "sq4b_step2_m_sweep.csv")
+    summary_path = os.path.join(results_dir, f"sq4b_step2_m_sweep_{args.strategy}.csv")
     summarize_m_sweep(
         results_dir,
         args.strategy,
