@@ -331,6 +331,118 @@ def _run_cascade_dc_inner(
     return total_surviving, total_overloaded, max_depth
 
 
+def _run_cascade_dc_tracked_inner(
+    A_csr: csr_matrix,
+    P: np.ndarray,
+    alpha: float,
+    f_max_initial: float,
+    depth: int,
+    global_nodes: np.ndarray,
+) -> tuple[int, int, int, set]:
+    """
+    Internal recursive DC cascade with edge tracking.
+    Returns (surviving_edges, overloaded_edges, max_depth, surviving_edge_set).
+    surviving_edge_set contains (i,j) tuples in GLOBAL node indices.
+    """
+    n = A_csr.shape[0]
+    if n <= 1 or A_csr.nnz == 0:
+        return 0, 0, depth, set()
+
+    flows = _dc_power_flow(A_csr, P)
+    if not flows:
+        return 0, 0, depth, set()
+
+    threshold = alpha * f_max_initial
+    overloaded = [(i, j) for (i, j), f in flows.items() if abs(f) > threshold]
+
+    if not overloaded:
+        # Stable — all edges survive; map local indices to global
+        surviving = set()
+        for (i, j) in flows:
+            gi, gj = global_nodes[i], global_nodes[j]
+            surviving.add((min(gi, gj), max(gi, gj)))
+        return len(flows), 0, depth, surviving
+
+    # Remove overloaded edges
+    A_lil = lil_matrix(A_csr)
+    for i, j in overloaded:
+        A_lil[i, j] = 0
+        A_lil[j, i] = 0
+    A_new = A_lil.tocsr()
+    A_new.eliminate_zeros()
+
+    n_comp, labels = connected_components(A_new, directed=False)
+
+    total_surviving = 0
+    total_overloaded = len(overloaded)
+    max_depth = depth
+    all_surviving_edges: set = set()
+
+    for comp_id in range(n_comp):
+        nodes = np.where(labels == comp_id)[0]
+        if len(nodes) <= 1:
+            continue
+
+        A_sub = A_new[np.ix_(nodes, nodes)].tocsr()
+        P_sub = P[nodes]
+        sub_global = global_nodes[nodes]
+
+        P_sub_bal = rebalance_power(P_sub)
+        if P_sub_bal is None:
+            if np.all(np.abs(P_sub) < 1e-5):
+                n_edges = A_sub.nnz // 2
+                total_surviving += n_edges
+                # Add these surviving edges with global indices
+                for li in range(A_sub.shape[0]):
+                    for idx in range(A_sub.indptr[li], A_sub.indptr[li + 1]):
+                        lj = A_sub.indices[idx]
+                        if li < lj:
+                            gi, gj = sub_global[li], sub_global[lj]
+                            all_surviving_edges.add((min(gi, gj), max(gi, gj)))
+            continue
+
+        surv, ovrl, d, sub_edges = _run_cascade_dc_tracked_inner(
+            A_sub, P_sub_bal, alpha, f_max_initial,
+            depth=depth + 1,
+            global_nodes=sub_global,
+        )
+        total_surviving += surv
+        total_overloaded += ovrl
+        max_depth = max(max_depth, d)
+        all_surviving_edges.update(sub_edges)
+
+    return total_surviving, total_overloaded, max_depth, all_surviving_edges
+
+
+def run_cascade_dc_tracked(
+    A_csr: csr_matrix,
+    P: np.ndarray,
+    alpha: float,
+    f_max_initial: float,
+) -> tuple[CascadeResult, set]:
+    """
+    Like run_cascade_dc but also returns the set of surviving edges
+    as (i,j) tuples with i < j in global node indices.
+    """
+    total_edges = A_csr.nnz // 2
+    if total_edges == 0:
+        return CascadeResult(S=0.0, n_overload=0, n_desync=0, cascade_depth=0), set()
+
+    global_nodes = np.arange(A_csr.shape[0])
+    surviving, overloaded, max_depth, edge_set = _run_cascade_dc_tracked_inner(
+        A_csr, P, alpha, f_max_initial, depth=0, global_nodes=global_nodes,
+    )
+
+    S = surviving / total_edges
+    result = CascadeResult(
+        S=S,
+        n_overload=overloaded,
+        n_desync=0,
+        cascade_depth=max_depth,
+    )
+    return result, edge_set
+
+
 def run_cascade_dc(
     A_csr: csr_matrix,
     P: np.ndarray,
