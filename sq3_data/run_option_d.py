@@ -41,7 +41,7 @@ K_BAR = 4
 Q_REWIRE = 0.1
 SEED = 20260214
 N_ALPHA_POINTS = 50
-ALPHA_RANGE = (0.1, 30.0)
+ALPHA_RANGE = (0.1, 2.5)
 BISECTION_TOL = 1e-3
 
 # Output paths
@@ -108,9 +108,8 @@ def run_option_d():
 
         # Alpha sweep
         for alpha_ratio in alphas_rel:
-            alpha_abs = alpha_ratio * f_max_dc
             from cascade_engine import run_cascade_dc
-            result = run_cascade_dc(A, P, alpha_abs, f_max_dc)
+            result = run_cascade_dc(A, P, alpha_ratio, f_max_dc)
             sweep_rows.append({
                 "instance_id": i,
                 "alpha_over_alpha_star": alpha_ratio,
@@ -121,7 +120,7 @@ def run_option_d():
         # Bisection
         alpha_c, S_ac = find_alpha_c(A, P, f_max=f_max_dc)
         converged = abs(S_ac - 0.5) < 0.2
-        rho = alpha_c / f_max_dc if converged else np.nan
+        rho = alpha_c if converged else np.nan
         if converged:
             n_converged += 1
 

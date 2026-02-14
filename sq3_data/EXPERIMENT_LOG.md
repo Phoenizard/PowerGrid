@@ -34,12 +34,14 @@ bisection_converged = abs(S_at_alpha_c - 0.5) < 0.2
 ```
 This is recorded in both sweep and summary CSVs. Downstream analysis should use `bisection_converged_frac` to assess result reliability.
 
-### Alpha parameter semantics
+### Alpha parameter semantics (CORRECTED 2026-02-14)
 
-- **Engine level** (`cascade_engine.py`): `alpha` is an ABSOLUTE overload threshold. Edge `(i,j)` fails when `|f_ij| > alpha * f_max_initial`.
-- **CSV output**: `alpha_over_alpha_star = alpha / f_max_dc` (dimensionless, relative to initial max flow).
-- **Bisection**: `find_alpha_c()` operates in absolute alpha space (starts at 0.01, step 0.3, ceiling 20.0). Returns absolute alpha_c.
-- **rho**: `rho = alpha_c / f_max_dc = alpha_c / alpha_star` (dimensionless).
+- **Engine level** (`cascade_engine.py`): `alpha` is a dimensionless multiplier on f_max. Edge `(i,j)` fails when `|f_ij| > alpha * f_max_initial`.
+- **CSV output**: `alpha_over_alpha_star` is the dimensionless alpha value passed directly to the engine.
+- **Bisection**: `find_alpha_c()` operates in the same dimensionless alpha space. Returns alpha_c as a multiplier on f_max.
+- **rho**: `rho = alpha_c` (alpha_c IS Smith's rho — no further division needed).
+
+See `NORMALIZATION_AUDIT.md` for full analysis of the two bugs that were corrected.
 
 ## Experiments
 
@@ -76,6 +78,52 @@ Key findings:
 - f_max decreases with m (more PCC edges distribute flow)
 - PCC flow concentration ratio ~11.2x at noon
 - No desync events at kappa=10 in swing model
+
+## Normalization Audit (2026-02-14)
+
+Two bugs were discovered and fixed. See `NORMALIZATION_AUDIT.md` for detailed analysis.
+
+### Bug 1 (Critical): Sweep alpha double-multiplication
+
+`run_multistep.py` and `run_option_d.py` pre-multiplied alpha by f_max before passing to the cascade engine, which internally multiplies by f_max again. This made the effective threshold `alpha * f_max^2` instead of `alpha * f_max`. All sweep CSV data was regenerated.
+
+Bisection (`find_alpha_c`) was NOT affected — it constructs alpha values internally.
+
+### Bug 2: rho double-division
+
+`rho = alpha_c / f_max_dc` was wrong because alpha_c is already a dimensionless multiplier on f_max (i.e., alpha_c IS rho). The division produced values that were too small by a factor of f_max for PCC networks (where f_max > 1) and too large for non-PCC networks (where f_max < 1).
+
+### Corrected results (n=10 sanity check)
+
+**Option D** (non-PCC, n=100):
+- rho: mean=0.841, std=0.145, range=[0.558, 1.000] (was ~15 before fix)
+- Convergence: 77/100 (77%)
+
+**Multistep** key results:
+
+| Time | m | rho (mean) | conv |
+|------|---|-----------|------|
+| 00:00 | 0 | 0.170 | 10% |
+| 06:00 | 0 | 0.520 | 90% |
+| 09:00 | 0 | 0.186 | 80% |
+| 12:00 | 0 | 0.200 | 90% |
+| 12:00 | 4 | 0.287 | 90% |
+| 12:00 | 8 | 0.368 | 70% |
+| 18:00 | 0 | 0.274 | 80% |
+
+Key physics:
+- rho increases with m (more PCC edges = higher cascade resilience)
+- Daytime rho ~ 0.15-0.20 (low due to PCC flow concentration)
+- Nighttime convergence is poor due to staircase S(alpha) regime
+- f_max still decreases with m as expected
+
+### Files changed
+
+| File | Changes |
+|------|---------|
+| `run_multistep.py` | 4 locations: removed alpha pre-multiplication, fixed rho |
+| `run_option_d.py` | 3 locations: removed alpha pre-multiplication, fixed rho, reverted ALPHA_RANGE to (0.1, 2.5) |
+| `NORMALIZATION_AUDIT.md` | Created — full audit documentation |
 
 ## Deferred Work
 

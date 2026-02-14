@@ -181,9 +181,8 @@ def run_multistep():
 
                 # Alpha sweep (50 points)
                 for a_idx, alpha_ratio in enumerate(alphas_rel):
-                    alpha_abs = alpha_ratio * f_max_dc
                     result, surviving_edges = run_cascade_dc_tracked(
-                        A_mod, P_norm, alpha_abs, f_max_dc
+                        A_mod, P_norm, alpha_ratio, f_max_dc
                     )
                     n_pcc_surv, n_nonpcc_surv = classify_edges(surviving_edges)
                     pcc_isolated = 1 if n_pcc_surv == 0 else 0
@@ -208,9 +207,8 @@ def run_multistep():
 
                 # Find S closest to alpha/alpha* = 1.0
                 closest_idx = np.argmin(np.abs(alphas_rel - 1.0))
-                alpha_abs_at_star = alphas_rel[closest_idx] * f_max_dc
                 res_at_star, _ = run_cascade_dc_tracked(
-                    A_mod, P_norm, alpha_abs_at_star, f_max_dc
+                    A_mod, P_norm, alphas_rel[closest_idx], f_max_dc
                 )
                 S_at_alpha_star_list.append(res_at_star.S)
 
@@ -220,7 +218,7 @@ def run_multistep():
                 bisection_converged_list.append(bisection_converged)
 
                 if bisection_converged:
-                    rho = alpha_c / f_max_dc
+                    rho = alpha_c
                     alpha_cs.append(alpha_c)
                     rhos.append(rho)
                 else:
@@ -228,7 +226,7 @@ def run_multistep():
                     rhos.append(np.nan)
 
                 # PCC isolation at low alpha (alpha/alpha* = 0.1)
-                alpha_low = 0.1 * f_max_dc
+                alpha_low = 0.1
                 res_low, edges_low = run_cascade_dc_tracked(
                     A_mod, P_norm, alpha_low, f_max_dc
                 )
