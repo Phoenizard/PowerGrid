@@ -169,4 +169,19 @@ def add_strategic_edges(A_csr, P, m, strategy='random', rng=None):
 
 ## Issues for Research Lead
 
-*(None currently — Claude Code should add issues here)*
+### [RESOLVED] SQ2 Simplex Calculation — Reverted to Continuous Formula + PCC Fix
+
+**History**: The original implementation used the continuous density formula (`continuoussourcesinkcounter`) but excluded PCC nodes, producing compressed trajectories. This was incorrectly "fixed" by switching to discrete counting (`sourcesinkcounter`).
+
+**Correct approach**: Fig.4-style trajectories use the **continuous density formula** on the **full power vector including PCC**. This matches GridResilience exactly:
+- `powerclasses.py:get_power_vec()` returns houses + PCC
+- `powerclasses.py:add_trajectory_point()` passes full Pvec to `continuoussourcesinkcounter()`
+
+**Two bugs fixed**:
+1. **Formula**: Reverted from discrete counting back to continuous density (`continuoussourcesinkcounter`)
+2. **PCC omission**: Now includes PCC node in Pvec (51 nodes, not 50)
+
+**Diagnostic results** (see `sq2_data/INVESTIGATION_LOG.md`):
+- Night: PCC is the sole source → sigma_s > 0 (physically correct: grid feeds community)
+- Day: PCC absorbs surplus → becomes largest sink, suppressing sigma_d via denominator normalization
+- Clear day/night oscillation preserved

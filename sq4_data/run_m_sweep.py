@@ -1,0 +1,187 @@
+"""
+Experiment 4B Step 2: m-sweep — κ_c time series for varying number of added
+edges, using the best strategy from Step 1.
+
+m ∈ {0, 1, 2, 4, 6, 8, 10, 15, 20}, q=0.1.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+import time
+
+import numpy as np
+import pandas as pd
+from numpy.random import default_rng
+from scipy.sparse import csr_matrix
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, SCRIPT_DIR)
+
+from kappa_pipeline import (
+    preload_ensemble, run_timeseries,
+    FAST_CONFIG, PROD_CONFIG, EnsembleInstance,
+)
+from edge_strategies import (
+    STRATEGIES, compute_node_power_stats, verify_edge_addition,
+)
+
+M_VALUES = [0, 1, 2, 4, 6, 8, 10, 15, 20]
+
+
+def make_modifier(strategy_name: str, m: int):
+    """Create a NetworkModifier for the given strategy and m."""
+    if m == 0:
+        return None
+
+    select_fn = STRATEGIES[strategy_name]
+
+    def modifier(A_base: csr_matrix, instance: EnsembleInstance) -> csr_matrix:
+        P_max_n, P_sign_n = compute_node_power_stats(
+            instance.cons_interps, instance.pv_interps
+        )
+        edge_rng = default_rng(instance.net_seed + 1_000_000)
+        A_lil = A_base.tolil()
+        A_original_nnz = A_base.nnz
+        A_modified = select_fn(A_lil, m, P_max_n, P_sign_n, edge_rng)
+        actual_m = (A_modified.nnz - A_original_nnz) // 2
+        verify_edge_addition(A_base, A_modified, actual_m)
+        return A_modified
+
+    return modifier
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Exp 4B Step 2: m-sweep")
+    parser.add_argument("--strategy", type=str, required=True,
+                        choices=list(STRATEGIES.keys()),
+                        help="Best strategy from Step 1")
+    parser.add_argument("--n_ensemble", type=int, default=50)
+    parser.add_argument("--seed", type=int, default=20260209)
+    parser.add_argument("--season", type=str, default="summer")
+    parser.add_argument("--fast", action="store_true", default=True)
+    parser.add_argument("--production", action="store_true")
+    parser.add_argument("--clean", action="store_true")
+    parser.add_argument("--m_only", type=int, default=None,
+                        help="Run only a single m value (for testing)")
+    return parser.parse_args()
+
+
+def summarize_m_sweep(
+    results_dir: str,
+    strategy: str,
+    m_values: list[int],
+    output_path: str,
+):
+    """Produce summary CSV from per-m results."""
+    baseline_noon = None
+    rows = []
+
+    for m in m_values:
+        csv_path = os.path.join(results_dir, f"kappa_ts_{strategy}_m{m}.csv")
+        if not os.path.exists(csv_path):
+            print(f"  WARN: missing {csv_path}, skipping m={m}")
+            continue
+
+        df = pd.read_csv(csv_path)
+        noon = df[df["hour"] == 12]
+        dawn = df[df["hour"] == 6]
+
+        kc_noon_mean = noon["kappa_c_mean"].mean()
+        kc_noon_std = noon["kappa_c_mean"].std()
+        kc_dawn_mean = dawn["kappa_c_mean"].mean()
+        kc_dawn_std = dawn["kappa_c_mean"].std()
+        ratio = kc_noon_mean / kc_dawn_mean if kc_dawn_mean > 0 else float("inf")
+
+        if m == 0:
+            baseline_noon = kc_noon_mean
+
+        improvement = 0.0
+        if baseline_noon is not None and baseline_noon > 0:
+            improvement = (kc_noon_mean - baseline_noon) / baseline_noon * 100
+
+        rows.append({
+            "strategy": strategy,
+            "m": m,
+            "kc_noon_mean": kc_noon_mean,
+            "kc_noon_std": kc_noon_std,
+            "kc_dawn_mean": kc_dawn_mean,
+            "kc_dawn_std": kc_dawn_std,
+            "peak_valley_ratio": ratio,
+            "improvement_pct": improvement,
+        })
+
+    summary = pd.DataFrame(rows)
+    summary.to_csv(output_path, index=False)
+    print(f"\nSummary saved: {output_path}")
+    print(summary.to_string(index=False))
+    return summary
+
+
+def main():
+    args = parse_args()
+    sim_config = PROD_CONFIG if args.production else FAST_CONFIG
+    config_name = "PRODUCTION" if args.production else "FAST"
+
+    results_dir = os.path.join(SCRIPT_DIR, "results", "exp4B_s2")
+    os.makedirs(results_dir, exist_ok=True)
+
+    m_values = [args.m_only] if args.m_only is not None else M_VALUES
+
+    print(f"=== Experiment 4B Step 2: m-sweep ===")
+    print(f"  Config: {config_name}")
+    print(f"  Strategy: {args.strategy}")
+    print(f"  n_ensemble: {args.n_ensemble}")
+    print(f"  m values: {m_values}")
+    print(f"  Seed: {args.seed}")
+    sys.stdout.flush()
+
+    # Preload ensemble once
+    print("\nPre-loading ensemble (q=0.1)...")
+    sys.stdout.flush()
+    ensemble = preload_ensemble(
+        n_ensemble=args.n_ensemble,
+        season=args.season,
+        seed=args.seed,
+        q=0.1,
+    )
+
+    t_total_start = time.time()
+
+    for m in m_values:
+        print(f"\n--- m = {m} ({args.strategy}) ---")
+        output_path = os.path.join(results_dir, f"kappa_ts_{args.strategy}_m{m}.csv")
+
+        # Check if already complete
+        if not args.clean and os.path.exists(output_path):
+            df = pd.read_csv(output_path)
+            if len(df) >= 56:
+                print(f"  Already complete ({len(df)} rows), skipping.")
+                continue
+
+        modifier = make_modifier(args.strategy, m)
+        run_timeseries(
+            ensemble=ensemble,
+            sim_config=sim_config,
+            output_path=output_path,
+            network_modifier=modifier,
+            clean=args.clean,
+        )
+
+    # Summary
+    summary_path = os.path.join(results_dir, f"sq4b_step2_m_sweep_{args.strategy}.csv")
+    summarize_m_sweep(
+        results_dir,
+        args.strategy,
+        m_values if args.m_only is None else M_VALUES,
+        summary_path,
+    )
+
+    t_total = time.time() - t_total_start
+    print(f"\n=== Exp 4B-S2 complete in {t_total/60:.1f} min ===")
+
+
+if __name__ == "__main__":
+    main()
