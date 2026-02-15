@@ -89,49 +89,85 @@ def plot_sq3_1():
 
 
 def plot_sq3_2():
-    """SQ3-2: Edge survival by type (PCC vs non-PCC) grouped bar at alpha/alpha*≈0.5."""
+    """SQ3-2: Edge survival by type at fixed absolute alpha slices (3 rows x 5 cols)."""
     sweep_path = os.path.join(RESULTS_DIR, "multistep", "sq3_multistep_sweep.csv")
     if not os.path.exists(sweep_path):
         print(f"  SKIP SQ3-2: {sweep_path} not found")
         return
 
     df = pd.read_csv(sweep_path)
+    df["alpha_abs"] = df["alpha_over_alpha_star"] * df["alpha_star"]
 
-    # Find alpha/alpha* closest to 0.5
-    alpha_vals = df["alpha_over_alpha_star"].unique()
-    target_alpha = alpha_vals[np.argmin(np.abs(alpha_vals - 0.5))]
-    df_at = df[df["alpha_over_alpha_star"] == target_alpha]
+    slice_fractions = [0.3, 0.6, 0.9]
+    n_rows = len(slice_fractions)
+    n_cols = len(TIMESTEP_ORDER)
 
-    fig, axes = plt.subplots(1, len(TIMESTEP_ORDER), figsize=(18, 5), sharey=True)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 12), sharey='row')
+
+    # Config ordering for consistent bar positions
+    config_keys_ordered = ["m=0_pcc_direct", "m=4_pcc_direct", "m=8_pcc_direct", "m=4_random"]
 
     for col_idx, t_label in enumerate(TIMESTEP_ORDER):
-        ax = axes[col_idx]
-        df_t = df_at[df_at["timestep"] == t_label]
+        df_t = df[df["timestep"] == t_label]
+        median_alpha_star = df_t["alpha_star"].median()
 
-        configs = []
-        pcc_means = []
-        nonpcc_means = []
+        for row_idx, frac in enumerate(slice_fractions):
+            ax = axes[row_idx, col_idx]
+            target_abs = frac * median_alpha_star
 
-        for (m, strategy), group in df_t.groupby(["m", "strategy"]):
-            config_key = f"m={m}_{strategy}"
-            configs.append(LABELS.get(config_key, config_key))
-            pcc_means.append(group["n_pcc_survived"].mean())
-            nonpcc_means.append(group["n_nonpcc_survived"].mean())
+            configs = []
+            pcc_means = []
+            nonpcc_means = []
 
-        x = np.arange(len(configs))
-        width = 0.35
+            for config_key in config_keys_ordered:
+                # Parse m and strategy from config key
+                parts = config_key.split("_", 1)
+                m_val = int(parts[0].split("=")[1])
+                strat = parts[1]
 
-        ax.bar(x - width/2, pcc_means, width, label="PCC edges", color="#e74c3c", alpha=0.8)
-        ax.bar(x + width/2, nonpcc_means, width, label="Non-PCC edges", color="#3498db", alpha=0.8)
+                group_cfg = df_t[(df_t["m"] == m_val) & (df_t["strategy"] == strat)]
+                if group_cfg.empty:
+                    continue
 
-        ax.set_xticks(x)
-        ax.set_xticklabels(configs, rotation=45, ha='right', fontsize=8)
-        ax.set_title(f"t = {t_label}", fontsize=11)
-        if col_idx == 0:
-            ax.set_ylabel("Surviving edges (mean)", fontsize=11)
-            ax.legend(fontsize=9)
+                # For each instance, find the row closest to target alpha_abs
+                pcc_vals = []
+                nonpcc_vals = []
+                for _, inst_group in group_cfg.groupby("instance_id"):
+                    idx = (inst_group["alpha_abs"] - target_abs).abs().idxmin()
+                    row = inst_group.loc[idx]
+                    pcc_vals.append(row["n_pcc_survived"])
+                    nonpcc_vals.append(row["n_nonpcc_survived"])
 
-    fig.suptitle(f"SQ3-2: Edge Survival by Type at α/α*≈{target_alpha:.2f}", fontsize=13, y=1.02)
+                configs.append(LABELS.get(config_key, config_key))
+                pcc_means.append(np.mean(pcc_vals))
+                nonpcc_means.append(np.mean(nonpcc_vals))
+
+            x = np.arange(len(configs))
+            width = 0.35
+
+            ax.bar(x - width/2, pcc_means, width, label="PCC edges",
+                   color="#e74c3c", alpha=0.8)
+            ax.bar(x + width/2, nonpcc_means, width, label="Non-PCC edges",
+                   color="#3498db", alpha=0.8)
+
+            ax.set_xticks(x)
+            ax.set_xticklabels(configs, rotation=45, ha='right', fontsize=8)
+
+            # Row label on leftmost column
+            if col_idx == 0:
+                ax.set_ylabel(f"Surviving edges (mean)\n"
+                              r"$\alpha$" + f" = {target_abs:.2f}", fontsize=10)
+
+            # Column title on top row
+            if row_idx == 0:
+                ax.set_title(f"t = {t_label}", fontsize=11)
+
+            # Legend in top-left subplot only
+            if row_idx == 0 and col_idx == 0:
+                ax.legend(fontsize=9, loc='upper left')
+
+    fig.suptitle(r"SQ3-2: Edge Survival by Type at Fixed Absolute $\alpha$",
+                 fontsize=14, y=1.01)
     fig.tight_layout()
 
     fig_path = os.path.join(FIGURES_DIR, "fig_sq3_2_edge_survival.png")
