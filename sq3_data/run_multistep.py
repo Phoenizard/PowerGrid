@@ -48,7 +48,7 @@ from edge_strategies import (
 from data_loader import evaluate_power_vector
 
 # --- Config ---
-N_ENSEMBLE = 10  # Set to 50 for production
+N_ENSEMBLE = 50  # Production run
 SEED = 20260214
 TIMESTEPS = {
     "00:00": 0,
