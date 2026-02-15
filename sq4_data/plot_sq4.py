@@ -165,6 +165,47 @@ def plot_4b3_kc_vs_m(summary_path: str, out_dir: str):
     print(f"  Saved: {out}")
 
 
+def plot_4b3_combined(results_dir: str, out_dir: str):
+    """Fig 4b3 combined: all 3 smart strategies + analytic/empirical bounds."""
+    strategies = [
+        ("max_power", "Max power", "tab:green", "o-"),
+        ("score", "Score", "tab:orange", "s-"),
+        ("pcc_direct", "PCC direct", "tab:purple", "^-"),
+    ]
+
+    fig, ax = plt.subplots()
+
+    # Plot strategy curves (noon only)
+    for strat, label, color, fmt in strategies:
+        csv_path = os.path.join(results_dir, f"sq4b_step2_m_sweep_{strat}.csv")
+        df = pd.read_csv(csv_path)
+        ax.errorbar(
+            df["m"], df["kc_noon_mean"], yerr=df["kc_noon_std"],
+            fmt=fmt, capsize=4, color=color, label=label,
+        )
+
+    # Analytic lower bound: 20.85 / (4 + m)
+    m_cont = np.linspace(0, 20, 200)
+    lb = 20.85 / (4 + m_cont)
+    ax.plot(m_cont, lb, "--", color="tab:red", label=r"Lower bound $20.85/(4+m)$")
+    ax.fill_between(m_cont, 0, lb, color="tab:red", alpha=0.08, label="Guaranteed unstable")
+
+    # Empirical fit: 25.7 / (4 + m)
+    emp = 25.7 / (4 + m_cont)
+    ax.plot(m_cont, emp, "--", color="tab:blue", label=r"Empirical fit $25.7/(4+m)$")
+
+    ax.set_xlabel("Number of added edges $m$")
+    ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$")
+    ax.set_title("Critical coupling vs added edges: strategy comparison")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    out = os.path.join(out_dir, "fig_4b3_kc_vs_m_combined.png")
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Saved: {out}")
+
+
 def plot_4b4_ratio_vs_m(summary_path: str, out_dir: str):
     """Fig 4b4: peak/valley ratio vs m."""
     df = pd.read_csv(summary_path)
@@ -185,7 +226,7 @@ def plot_4b4_ratio_vs_m(summary_path: str, out_dir: str):
 def main():
     parser = argparse.ArgumentParser(description="Generate SQ4 figures")
     parser.add_argument("--exp", type=str, default="all",
-                        choices=["all", "4a", "4b1", "4b2"],
+                        choices=["all", "4a", "4b1", "4b2", "4b3"],
                         help="Which experiment figures to generate")
     parser.add_argument("--m", type=int, default=4,
                         help="m value for strategy comparison plots")
@@ -227,6 +268,11 @@ def main():
             plot_4b4_ratio_vs_m(summary_4b2, FIGURES_DIR)
         else:
             print(f"  WARN: {summary_4b2} not found, skipping 4B-S2 figures")
+
+    if args.exp in ("all", "4b3"):
+        results_4b2 = os.path.join(RESULTS_DIR, "exp4B_s2")
+        print("Generating Exp 4B-S2 combined figure...")
+        plot_4b3_combined(results_4b2, FIGURES_DIR)
 
     print("\nDone.")
 
