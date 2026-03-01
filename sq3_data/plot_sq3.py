@@ -23,12 +23,11 @@ RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
 FIGURES_DIR = os.path.join(SCRIPT_DIR, "figures")
 os.makedirs(FIGURES_DIR, exist_ok=True)
 
-# Paul Tol colorblind-safe palette
 M_COLORS = {
-    "m=0_pcc_direct":  "#888888",
-    "m=4_pcc_direct":  "#AA3377",
-    "m=8_pcc_direct":  "#BBBBDD",
-    "m=4_random":      "#4477AA",
+    "m=0_pcc_direct":  "#888888",   # gray (baseline)
+    "m=4_pcc_direct":  "#2ca02c",   # tab green
+    "m=8_pcc_direct":  "#8c564b",   # tab brown
+    "m=4_random":      "#1f77b4",   # tab blue
 }
 LABELS = {
     "m=0_pcc_direct": "m=0 (baseline)",
@@ -154,9 +153,9 @@ def plot_sq3_2():
             width = 0.35
 
             ax.bar(x - width/2, pcc_means, width, label="PCC edges",
-                   color="#EE6677", alpha=0.8)
+                   color="#d62728", alpha=0.8)
             ax.bar(x + width/2, nonpcc_means, width, label="Non-PCC edges",
-                   color="#4477AA", alpha=0.8)
+                   color="#1f77b4", alpha=0.8)
 
             ax.set_xticks(x)
             ax.set_xticklabels(configs, rotation=45, ha='right', fontsize=8)
@@ -201,11 +200,11 @@ def plot_sq3_3():
     ax = axes[0]
     df_optd = pd.read_csv(optd_sweep)
     agg = df_optd.groupby("alpha_over_alpha_star")["S"].agg(["mean", "std"]).reset_index()
-    ax.plot(agg["alpha_over_alpha_star"], agg["mean"], '-', color="#228833", linewidth=2,
+    ax.plot(agg["alpha_over_alpha_star"], agg["mean"], '-', color="#2ca02c", linewidth=2,
             label="WS(50,4,0.1) — no PCC")
     ax.fill_between(agg["alpha_over_alpha_star"],
                      agg["mean"] - agg["std"], agg["mean"] + agg["std"],
-                     alpha=0.2, color="#228833")
+                     alpha=0.2, color="#2ca02c")
 
     # Overlay PCC m=0 at noon if available
     if has_pcc:
@@ -213,12 +212,12 @@ def plot_sq3_3():
         df_noon = df_pcc[(df_pcc["timestep"] == "12:00") & (df_pcc["m"] == 0)]
         if not df_noon.empty:
             agg_pcc = df_noon.groupby("alpha_over_alpha_star")["S"].agg(["mean", "std"]).reset_index()
-            ax.plot(agg_pcc["alpha_over_alpha_star"], agg_pcc["mean"], '-', color="#EE6677",
+            ax.plot(agg_pcc["alpha_over_alpha_star"], agg_pcc["mean"], '-', color="#d62728",
                     linewidth=2, label="PCC network m=0 (noon)")
             ax.fill_between(agg_pcc["alpha_over_alpha_star"],
                              agg_pcc["mean"] - agg_pcc["std"],
                              agg_pcc["mean"] + agg_pcc["std"],
-                             alpha=0.2, color="#EE6677")
+                             alpha=0.2, color="#d62728")
 
     ax.axhline(0.5, color='gray', linestyle='--', alpha=0.5)
     ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=11)
@@ -234,7 +233,7 @@ def plot_sq3_3():
     rhos = df_rho["rho"].dropna().values
 
     if len(rhos) > 0:
-        ax.hist(rhos, bins=20, color="#228833", alpha=0.7, edgecolor="black")
+        ax.hist(rhos, bins=20, color="#2ca02c", alpha=0.7, edgecolor="black")
         ax.axvline(np.mean(rhos), color='red', linestyle='--',
                    label=f"mean={np.mean(rhos):.3f}")
         ax.axvline(np.median(rhos), color='blue', linestyle='--',
@@ -251,7 +250,7 @@ def plot_sq3_3():
     n_total = len(df_rho)
     ax.bar(["Converged", "Not converged"],
            [n_conv, n_total - n_conv],
-           color=["#228833", "#EE6677"], alpha=0.8, edgecolor="black")
+           color=["#2ca02c", "#d62728"], alpha=0.8, edgecolor="black")
     ax.set_ylabel("Count", fontsize=11)
     ax.set_title(f"(c) Bisection Convergence ({100*n_conv/n_total:.0f}%)", fontsize=12)
     ax.grid(True, alpha=0.3, axis='y')

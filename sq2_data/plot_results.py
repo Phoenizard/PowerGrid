@@ -20,13 +20,12 @@ import ternary
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DPI = 300
 
-# Paul Tol colorblind-safe palette
 STRATEGY_COLORS = {
     "baseline":   "#888888",
-    "random":     "#4477AA",
-    "max_power":  "#228833",
-    "score":      "#EE6677",
-    "pcc_direct": "#AA3377",
+    "random":     "#1f77b4",   # tab blue
+    "max_power":  "#ff7f0e",   # tab orange
+    "score":      "#d62728",   # tab red
+    "pcc_direct": "#2ca02c",   # tab green
 }
 
 
@@ -70,7 +69,7 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
 
     # Scale to ternary coordinates (python-ternary uses scale parameter)
     scale = 1.0
-    points = list(zip(eta_plus, eta_minus, eta_p))
+    points = list(zip(eta_minus, eta_p, eta_plus))
 
     fig, tax = ternary.figure(scale=scale)
     fig.set_size_inches(7, 6)
@@ -119,8 +118,8 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
                 )
 
     # Labels
-    tax.left_axis_label("Consumers ($\\eta^-$)", fontsize=11, offset=0.16)
-    tax.right_axis_label("Generators ($\\eta^+$)", fontsize=11, offset=0.16)
+    tax.left_axis_label("Generators ($\\eta^+$)", fontsize=11, offset=0.16)
+    tax.right_axis_label("Consumers ($\\eta^-$)", fontsize=11, offset=0.16)
     tax.bottom_axis_label("Passive ($\\eta_p$)", fontsize=11, offset=0.06)
 
     tax.ticks(axis="lbr", linewidth=0.5, multiple=0.2, fontsize=8, offset=0.02,
@@ -165,13 +164,13 @@ def plot_kappa_timeseries(results_dir: str, output_dir: str, season: str):
 
     fig, ax = plt.subplots(figsize=(12, 3.5))
 
-    ax.plot(x, kc_mean, "-", color="#4477AA", linewidth=1.5, label="$\\bar{\\kappa}_c / P_{\\max}$")
+    ax.plot(x, kc_mean, "-", color="#1f77b4", linewidth=1.5, label="$\\bar{\\kappa}_c / P_{\\max}$")
     ax.fill_between(
         x,
         np.maximum(kc_mean - kc_std, 0),
         kc_mean + kc_std,
         alpha=0.25,
-        color="#4477AA",
+        color="#1f77b4",
         label="$\\pm 1$ SD",
     )
 

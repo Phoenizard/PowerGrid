@@ -28,19 +28,18 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
 FIGURES_DIR = os.path.join(SCRIPT_DIR, "figures")
 
-# Paul Tol colorblind-safe palette
 STRATEGY_COLORS = {
     "baseline":   "#888888",
-    "random":     "#4477AA",
-    "max_power":  "#228833",
-    "score":      "#EE6677",
-    "pcc_direct": "#AA3377",
+    "random":     "#1f77b4",   # tab blue
+    "max_power":  "#ff7f0e",   # tab orange
+    "score":      "#d62728",   # tab red
+    "pcc_direct": "#2ca02c",   # tab green
 }
 M_COLORS = {
     "m=0_pcc_direct":  "#888888",
-    "m=4_pcc_direct":  "#AA3377",
-    "m=8_pcc_direct":  "#BBBBDD",
-    "m=4_random":      "#4477AA",
+    "m=4_pcc_direct":  "#2ca02c",   # tab green
+    "m=8_pcc_direct":  "#8c564b",   # tab brown
+    "m=4_random":      "#1f77b4",   # tab blue
 }
 
 
@@ -66,11 +65,11 @@ def plot_4a1_kc_vs_q(summary_path: str, out_dir: str):
     fig, ax = plt.subplots()
     ax.errorbar(
         df["q"], df["kc_noon_mean"], yerr=df["kc_noon_std"],
-        fmt="o-", capsize=4, color="#AA3377", label="Noon (12:00)",
+        fmt="o-", capsize=4, color="#ff7f0e", label="Noon (12:00)",
     )
     ax.errorbar(
         df["q"], df["kc_dawn_mean"], yerr=df["kc_dawn_std"],
-        fmt="s--", capsize=4, color="#4477AA", label="Dawn (06:00)",
+        fmt="s--", capsize=4, color="#1f77b4", label="Dawn (06:00)",
     )
     ax.set_xlabel("Rewiring probability $q$")
     ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$")
@@ -86,7 +85,7 @@ def plot_4a2_ratio_vs_q(summary_path: str, out_dir: str):
     """Fig 4a2: peak/valley ratio vs q."""
     df = pd.read_csv(summary_path)
     fig, ax = plt.subplots()
-    ax.plot(df["q"], df["peak_valley_ratio"], "o-", color="#EE6677")
+    ax.plot(df["q"], df["peak_valley_ratio"], "o-", color="#d62728")
     ax.set_xlabel("Rewiring probability $q$")
     ax.set_ylabel("Peak / Valley ratio")
     ax.grid(True, alpha=0.3)
@@ -157,11 +156,11 @@ def plot_4b3_kc_vs_m(summary_path: str, out_dir: str):
     fig, ax = plt.subplots()
     ax.errorbar(
         df["m"], df["kc_noon_mean"], yerr=df["kc_noon_std"],
-        fmt="o-", capsize=4, color="#AA3377", label="Noon (12:00)",
+        fmt="o-", capsize=4, color="#ff7f0e", label="Noon (12:00)",
     )
     ax.errorbar(
         df["m"], df["kc_dawn_mean"], yerr=df["kc_dawn_std"],
-        fmt="s--", capsize=4, color="#4477AA", label="Dawn (06:00)",
+        fmt="s--", capsize=4, color="#1f77b4", label="Dawn (06:00)",
     )
     ax.set_xlabel("Number of added edges $m$")
     ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$")
@@ -197,12 +196,12 @@ def plot_4b3_combined(results_dir: str, out_dir: str):
     # Analytic lower bound: 20.85 / (4 + m)
     m_cont = np.linspace(0, 20, 200)
     lb = 20.85 / (4 + m_cont)
-    ax.plot(m_cont, lb, "--", color="#EE6677", label=r"Lower bound $20.85/(4+m)$")
-    ax.fill_between(m_cont, 0, lb, color="#EE6677", alpha=0.08, label="Guaranteed unstable")
+    ax.plot(m_cont, lb, "--", color="#d62728", label=r"Lower bound $20.85/(4+m)$")
+    ax.fill_between(m_cont, 0, lb, color="#d62728", alpha=0.08, label="Guaranteed unstable")
 
     # Empirical fit: 25.7 / (4 + m)
     emp = 25.7 / (4 + m_cont)
-    ax.plot(m_cont, emp, "--", color="#4477AA", label=r"Empirical fit $25.7/(4+m)$")
+    ax.plot(m_cont, emp, "--", color="#1f77b4", label=r"Empirical fit $25.7/(4+m)$")
 
     ax.set_xlabel("Number of added edges $m$")
     ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$")
@@ -219,7 +218,7 @@ def plot_4b4_ratio_vs_m(summary_path: str, out_dir: str):
     """Fig 4b4: peak/valley ratio vs m."""
     df = pd.read_csv(summary_path)
     fig, ax = plt.subplots()
-    ax.plot(df["m"], df["peak_valley_ratio"], "o-", color="#EE6677")
+    ax.plot(df["m"], df["peak_valley_ratio"], "o-", color="#d62728")
     ax.set_xlabel("Number of added edges $m$")
     ax.set_ylabel("Peak / Valley ratio")
     strategy = df["strategy"].iloc[0] if "strategy" in df.columns else "best"
