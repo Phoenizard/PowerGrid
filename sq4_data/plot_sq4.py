@@ -108,7 +108,7 @@ def plot_4b2_strategy_timeseries(results_dir: str, m: int, out_dir: str):
     colors = ["gray", "tab:blue", "tab:green", "tab:orange", "tab:purple"]
     labels = ["Baseline", "Random", "Max power", "Score", "PCC direct"]
 
-    fig, ax = plt.subplots(figsize=(12, 5))
+    fig, ax = plt.subplots(figsize=(14, 4))
     for strat, color, label in zip(strategies, colors, labels):
         csv_path = os.path.join(results_dir, f"kappa_ts_{strat}_m{m}.csv")
         if not os.path.exists(csv_path):

@@ -64,7 +64,7 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
     points = list(zip(eta_plus, eta_minus, eta_p))
 
     fig, tax = ternary.figure(scale=scale)
-    fig.set_size_inches(10, 8)
+    fig.set_size_inches(7, 6)
     tax.boundary(linewidth=1.5)
     tax.gridlines(multiple=0.1, color="gray", linewidth=0.3, alpha=0.5)
 
@@ -159,7 +159,7 @@ def plot_kappa_timeseries(results_dir: str, output_dir: str, season: str):
     # x-axis: continuous time in days
     x = days + hours_in_day / 24.0
 
-    fig, ax = plt.subplots(figsize=(10, 4.5))
+    fig, ax = plt.subplots(figsize=(12, 3.5))
 
     ax.plot(x, kc_mean, "b-", linewidth=1.5, label="$\\bar{\\kappa}_c / P_{\\max}$")
     ax.fill_between(
