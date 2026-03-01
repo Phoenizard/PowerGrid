@@ -51,6 +51,13 @@ SQ3: Cascade 验证 — 稳定性 ≠ 韧性
    │  对照组（无 PCC, n=100）→ sigmoid + ρ_mean=0.84
    │  结论: SQ4 的 PCC 加边在 cascade 模型下反而有害
    ▼
+SQ5: 阻尼敏感性分析 — 拓扑优化的鲁棒性验证
+   │  SQ5-A: gamma 扫描 [0.1, 5.0]，16 个阻尼值 × 50 ensemble
+   │  kc 随 gamma 单调递减（高阻尼 → 更易同步）
+   │  m=4 加边的相对收益恒定 ~50%（阻尼不变性）
+   │  低阻尼时绝对收益最大（3.79 vs 2.96）
+   │  结论: 拓扑优化效果与阻尼参数乘法可分离
+   ▼
 核心发现: 跨模型 Braess-like 悖论
    加边 → swing 稳定性 ✓（分散同步负载）
    加边 → cascade 韧性 ✗（集中边流量）
@@ -103,6 +110,17 @@ SQ3: Cascade 验证 — 稳定性 ≠ 韧性
 | S vs α/α* 形状 | 阶梯 | 阶梯 | 阶梯 | sigmoid |
 | PCC/non-PCC 流量比 | ~11× | ~8× | ~6× | — |
 
+### SQ5 — 阻尼敏感性分析
+
+| 指标 | gamma = 0.1 | gamma = 1.0 | gamma = 5.0 |
+|------|-------------|-------------|-------------|
+| κ_c (m=0) | 7.66 | 7.18 | 5.97 |
+| κ_c (m=4) | 3.87 | 3.60 | 3.01 |
+| 绝对降低 | 3.79 | 3.59 | 2.96 |
+| 相对降低 | 49.5% | 49.9% | 49.5% |
+
+**核心发现**：拓扑优化的相对效果（~50%）在全阻尼范围内保持不变，说明拓扑效应与阻尼效应近似乘法可分离。低阻尼（逆变器主导的可再生能源电网）时绝对收益最大，拓扑优化尤为重要。
+
 ### 方法论发现
 
 Smith et al. 的 cascade 分析流程存在一个未经验证的迁移假设：
@@ -147,6 +165,11 @@ PowerGrid/
 │   ├── run_m_sweep.py           #   Exp 4B-S2: m 扫描
 │   ├── run_sq4b_proof.py        #   解析下界验证
 │   └── plot_sq4.py              #   Fig 4A–4D + proof 绘图
+│
+├── sq5_data/                    # SQ5: 阻尼敏感性分析
+│   ├── run_sq5a.py              #   gamma 扫描实验
+│   ├── plot_sq5a.py             #   Fig 5A1–5A3 绘图
+│   └── REPORT_SQ5A.md           #   实验报告
 │
 ├── sq3_data/                    # SQ3: Cascade 验证（exp/SQ3 分支）
 │
@@ -193,9 +216,12 @@ cd sq4_data
 python run_q_sweep.py           # Exp 4A
 python run_strategy_comparison.py  # Exp 4B-S1
 python run_m_sweep.py           # Exp 4B-S2
+
+# SQ5: 阻尼敏感性
+cd sq5_data && python run_sq5a.py
 ```
 
-生产运行请将 `n_ensemble` 设为 200（SQ1）或 50（SQ2/SQ4）。
+生产运行请将 `n_ensemble` 设为 200（SQ1）或 50（SQ2/SQ4/SQ5）。
 
 ---
 
