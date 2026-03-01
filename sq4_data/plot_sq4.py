@@ -28,6 +28,21 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
 FIGURES_DIR = os.path.join(SCRIPT_DIR, "figures")
 
+# Paul Tol colorblind-safe palette
+STRATEGY_COLORS = {
+    "baseline":   "#888888",
+    "random":     "#4477AA",
+    "max_power":  "#228833",
+    "score":      "#EE6677",
+    "pcc_direct": "#AA3377",
+}
+M_COLORS = {
+    "m=0_pcc_direct":  "#888888",
+    "m=4_pcc_direct":  "#AA3377",
+    "m=8_pcc_direct":  "#BBBBDD",
+    "m=4_random":      "#4477AA",
+}
+
 
 def _setup_style():
     """Set up publication-quality matplotlib defaults."""
@@ -51,15 +66,14 @@ def plot_4a1_kc_vs_q(summary_path: str, out_dir: str):
     fig, ax = plt.subplots()
     ax.errorbar(
         df["q"], df["kc_noon_mean"], yerr=df["kc_noon_std"],
-        fmt="o-", capsize=4, color="tab:blue", label="Noon (12:00)",
+        fmt="o-", capsize=4, color="#AA3377", label="Noon (12:00)",
     )
     ax.errorbar(
         df["q"], df["kc_dawn_mean"], yerr=df["kc_dawn_std"],
-        fmt="s--", capsize=4, color="tab:orange", label="Dawn (06:00)",
+        fmt="s--", capsize=4, color="#4477AA", label="Dawn (06:00)",
     )
     ax.set_xlabel("Rewiring probability $q$")
     ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$")
-    ax.set_title("Critical coupling vs rewiring probability")
     ax.legend()
     ax.grid(True, alpha=0.3)
     out = os.path.join(out_dir, "fig_4a1_kc_vs_q.png")
@@ -72,10 +86,9 @@ def plot_4a2_ratio_vs_q(summary_path: str, out_dir: str):
     """Fig 4a2: peak/valley ratio vs q."""
     df = pd.read_csv(summary_path)
     fig, ax = plt.subplots()
-    ax.plot(df["q"], df["peak_valley_ratio"], "o-", color="tab:red")
+    ax.plot(df["q"], df["peak_valley_ratio"], "o-", color="#EE6677")
     ax.set_xlabel("Rewiring probability $q$")
     ax.set_ylabel("Peak / Valley ratio")
-    ax.set_title("Diurnal vulnerability ratio vs rewiring probability")
     ax.grid(True, alpha=0.3)
     out = os.path.join(out_dir, "fig_4a2_ratio_vs_q.png")
     fig.savefig(out, bbox_inches="tight")
@@ -88,13 +101,12 @@ def plot_4b1_strategy_bars(summary_path: str, out_dir: str):
     df = pd.read_csv(summary_path)
     fig, ax = plt.subplots()
     x = np.arange(len(df))
-    colors = ["gray", "tab:blue", "tab:green", "tab:orange", "tab:purple"]
+    colors = [STRATEGY_COLORS[s] for s in ["baseline", "random", "max_power", "score", "pcc_direct"]]
     bars = ax.bar(x, df["kc_noon_mean"], yerr=df["kc_noon_std"],
                   capsize=4, color=colors[:len(df)], alpha=0.8)
     ax.set_xticks(x)
     ax.set_xticklabels(df["strategy"], rotation=30, ha="right")
     ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$ (noon)")
-    ax.set_title("Strategy comparison: critical coupling at noon (m=4)")
     ax.grid(True, alpha=0.3, axis="y")
     out = os.path.join(out_dir, "fig_4b1_strategy_bars.png")
     fig.savefig(out, bbox_inches="tight")
@@ -105,7 +117,7 @@ def plot_4b1_strategy_bars(summary_path: str, out_dir: str):
 def plot_4b2_strategy_timeseries(results_dir: str, m: int, out_dir: str):
     """Fig 4b2: full 7-day κ_c(t) overlaid for all strategies."""
     strategies = ["baseline", "random", "max_power", "score", "pcc_direct"]
-    colors = ["gray", "tab:blue", "tab:green", "tab:orange", "tab:purple"]
+    colors = [STRATEGY_COLORS[s] for s in strategies]
     labels = ["Baseline", "Random", "Max power", "Score", "PCC direct"]
 
     fig, ax = plt.subplots(figsize=(14, 4))
@@ -126,7 +138,6 @@ def plot_4b2_strategy_timeseries(results_dir: str, m: int, out_dir: str):
 
     ax.set_xlabel("Time (hours)")
     ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$")
-    ax.set_title(f"7-day critical coupling time series (m={m} added edges)")
     ax.legend(loc="upper left")
     ax.grid(True, alpha=0.3)
 
@@ -146,16 +157,15 @@ def plot_4b3_kc_vs_m(summary_path: str, out_dir: str):
     fig, ax = plt.subplots()
     ax.errorbar(
         df["m"], df["kc_noon_mean"], yerr=df["kc_noon_std"],
-        fmt="o-", capsize=4, color="tab:blue", label="Noon (12:00)",
+        fmt="o-", capsize=4, color="#AA3377", label="Noon (12:00)",
     )
     ax.errorbar(
         df["m"], df["kc_dawn_mean"], yerr=df["kc_dawn_std"],
-        fmt="s--", capsize=4, color="tab:orange", label="Dawn (06:00)",
+        fmt="s--", capsize=4, color="#4477AA", label="Dawn (06:00)",
     )
     ax.set_xlabel("Number of added edges $m$")
     ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$")
     strategy = df["strategy"].iloc[0] if "strategy" in df.columns else "best"
-    ax.set_title(f"Critical coupling vs added edges ({strategy})")
     ax.legend()
     ax.grid(True, alpha=0.3)
     stag = f"_{strategy}" if strategy != "best" else ""
@@ -168,9 +178,9 @@ def plot_4b3_kc_vs_m(summary_path: str, out_dir: str):
 def plot_4b3_combined(results_dir: str, out_dir: str):
     """Fig 4b3 combined: all 3 smart strategies + analytic/empirical bounds."""
     strategies = [
-        ("max_power", "Max power", "tab:green", "o-"),
-        ("score", "Score", "tab:orange", "s-"),
-        ("pcc_direct", "PCC direct", "tab:purple", "^-"),
+        ("max_power", "Max power", STRATEGY_COLORS["max_power"], "o-"),
+        ("score", "Score", STRATEGY_COLORS["score"], "s-"),
+        ("pcc_direct", "PCC direct", STRATEGY_COLORS["pcc_direct"], "^-"),
     ]
 
     fig, ax = plt.subplots()
@@ -187,16 +197,15 @@ def plot_4b3_combined(results_dir: str, out_dir: str):
     # Analytic lower bound: 20.85 / (4 + m)
     m_cont = np.linspace(0, 20, 200)
     lb = 20.85 / (4 + m_cont)
-    ax.plot(m_cont, lb, "--", color="tab:red", label=r"Lower bound $20.85/(4+m)$")
-    ax.fill_between(m_cont, 0, lb, color="tab:red", alpha=0.08, label="Guaranteed unstable")
+    ax.plot(m_cont, lb, "--", color="#EE6677", label=r"Lower bound $20.85/(4+m)$")
+    ax.fill_between(m_cont, 0, lb, color="#EE6677", alpha=0.08, label="Guaranteed unstable")
 
     # Empirical fit: 25.7 / (4 + m)
     emp = 25.7 / (4 + m_cont)
-    ax.plot(m_cont, emp, "--", color="tab:blue", label=r"Empirical fit $25.7/(4+m)$")
+    ax.plot(m_cont, emp, "--", color="#4477AA", label=r"Empirical fit $25.7/(4+m)$")
 
     ax.set_xlabel("Number of added edges $m$")
     ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$")
-    ax.set_title("Critical coupling vs added edges: strategy comparison")
     ax.legend()
     ax.grid(True, alpha=0.3)
 
@@ -210,11 +219,10 @@ def plot_4b4_ratio_vs_m(summary_path: str, out_dir: str):
     """Fig 4b4: peak/valley ratio vs m."""
     df = pd.read_csv(summary_path)
     fig, ax = plt.subplots()
-    ax.plot(df["m"], df["peak_valley_ratio"], "o-", color="tab:red")
+    ax.plot(df["m"], df["peak_valley_ratio"], "o-", color="#EE6677")
     ax.set_xlabel("Number of added edges $m$")
     ax.set_ylabel("Peak / Valley ratio")
     strategy = df["strategy"].iloc[0] if "strategy" in df.columns else "best"
-    ax.set_title(f"Diurnal vulnerability ratio vs added edges ({strategy})")
     ax.grid(True, alpha=0.3)
     stag = f"_{strategy}" if strategy != "best" else ""
     out = os.path.join(out_dir, f"fig_4b4_ratio_vs_m{stag}.png")

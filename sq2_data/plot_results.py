@@ -20,6 +20,15 @@ import ternary
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DPI = 300
 
+# Paul Tol colorblind-safe palette
+STRATEGY_COLORS = {
+    "baseline":   "#888888",
+    "random":     "#4477AA",
+    "max_power":  "#228833",
+    "score":      "#EE6677",
+    "pcc_direct": "#AA3377",
+}
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Plot SQ2 results")
@@ -128,11 +137,6 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
     cbar = plt.colorbar(sm, ax=tax.get_axes(), fraction=0.03, pad=0.08)
     cbar.set_label("Hours from Monday 00:00", fontsize=10)
 
-    tax.set_title(
-        f"Simplex Trajectory — {season.capitalize()} Week",
-        fontsize=13, pad=20,
-    )
-
     fig_path = os.path.join(output_dir, f"fig3A_trajectory_{season}.png")
     plt.savefig(fig_path, dpi=DPI, bbox_inches="tight")
     plt.close()
@@ -161,22 +165,18 @@ def plot_kappa_timeseries(results_dir: str, output_dir: str, season: str):
 
     fig, ax = plt.subplots(figsize=(12, 3.5))
 
-    ax.plot(x, kc_mean, "b-", linewidth=1.5, label="$\\bar{\\kappa}_c / P_{\\max}$")
+    ax.plot(x, kc_mean, "-", color="#4477AA", linewidth=1.5, label="$\\bar{\\kappa}_c / P_{\\max}$")
     ax.fill_between(
         x,
         np.maximum(kc_mean - kc_std, 0),
         kc_mean + kc_std,
         alpha=0.25,
-        color="blue",
+        color="#4477AA",
         label="$\\pm 1$ SD",
     )
 
     ax.set_xlabel("Day of Week", fontsize=12)
     ax.set_ylabel("$\\bar{\\kappa}_c / P_{\\max}$", fontsize=12)
-    ax.set_title(
-        f"Critical Coupling Time Series — {season.capitalize()} Week",
-        fontsize=13,
-    )
 
     # x ticks at day boundaries
     ax.set_xticks(range(N_DAYS := 7))
