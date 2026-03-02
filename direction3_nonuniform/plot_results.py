@@ -43,12 +43,11 @@ def plot_2a(input_csv: str, output_png: str):
     ax.plot(x, y_gen, color="#1f77b4", linewidth=2.0, label="2A-gen")
     ax.fill_between(x, y_gen - s_gen, y_gen + s_gen, color="#1f77b4", alpha=0.20)
 
-    ax.plot(x, y_con, color="#d62728", linewidth=2.0, label="2A-con")
-    ax.fill_between(x, y_con - s_con, y_con + s_con, color="#d62728", alpha=0.20)
+    ax.plot(x, y_con, color="#ff7f0e", linewidth=2.0, label="2A-con")
+    ax.fill_between(x, y_con - s_con, y_con + s_con, color="#ff7f0e", alpha=0.20)
 
     ax.set_xlabel("sigma / P_bar")
     ax.set_ylabel("kappa_c / P_max")
-    ax.set_title("Effect of Power Heterogeneity on Critical Coupling")
     ax.grid(alpha=0.25)
     ax.legend(frameon=False)
 
@@ -67,12 +66,11 @@ def plot_2c(input_csv: str, output_png: str):
     s = data["kappa_c_std"][order]
 
     fig, ax = plt.subplots(figsize=(7.0, 4.6), dpi=200)
-    ax.plot(x, y, color="#2ca02c", linewidth=2.0, label="2C")
-    ax.fill_between(x, y - s, y + s, color="#2ca02c", alpha=0.20)
+    ax.plot(x, y, color="#d62728", linewidth=2.0, label="2C")
+    ax.fill_between(x, y - s, y + s, color="#d62728", alpha=0.20)
 
     ax.set_xlabel("r")
     ax.set_ylabel("kappa_c / P_max")
-    ax.set_title("Centralized vs Distributed Generation")
     ax.grid(alpha=0.25)
 
     y_min = float(np.min(y - s))

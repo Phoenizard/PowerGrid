@@ -20,6 +20,14 @@ import ternary
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DPI = 300
 
+STRATEGY_COLORS = {
+    "baseline":   "#888888",
+    "random":     "#1f77b4",   # tab blue
+    "max_power":  "#ff7f0e",   # tab orange
+    "score":      "#d62728",   # tab red
+    "pcc_direct": "#2ca02c",   # tab green
+}
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Plot SQ2 results")
@@ -61,10 +69,10 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
 
     # Scale to ternary coordinates (python-ternary uses scale parameter)
     scale = 1.0
-    points = list(zip(eta_plus, eta_minus, eta_p))
+    points = list(zip(eta_minus, eta_p, eta_plus))
 
     fig, tax = ternary.figure(scale=scale)
-    fig.set_size_inches(10, 8)
+    fig.set_size_inches(7, 6)
     tax.boundary(linewidth=1.5)
     tax.gridlines(multiple=0.1, color="gray", linewidth=0.3, alpha=0.5)
 
@@ -110,8 +118,8 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
                 )
 
     # Labels
-    tax.left_axis_label("Consumers ($\\eta^-$)", fontsize=11, offset=0.16)
-    tax.right_axis_label("Generators ($\\eta^+$)", fontsize=11, offset=0.16)
+    tax.left_axis_label("Generators ($\\eta^+$)", fontsize=11, offset=0.16)
+    tax.right_axis_label("Consumers ($\\eta^-$)", fontsize=11, offset=0.16)
     tax.bottom_axis_label("Passive ($\\eta_p$)", fontsize=11, offset=0.06)
 
     tax.ticks(axis="lbr", linewidth=0.5, multiple=0.2, fontsize=8, offset=0.02,
@@ -127,11 +135,6 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
     sm.set_array([])
     cbar = plt.colorbar(sm, ax=tax.get_axes(), fraction=0.03, pad=0.08)
     cbar.set_label("Hours from Monday 00:00", fontsize=10)
-
-    tax.set_title(
-        f"Simplex Trajectory — {season.capitalize()} Week",
-        fontsize=13, pad=20,
-    )
 
     fig_path = os.path.join(output_dir, f"fig3A_trajectory_{season}.png")
     plt.savefig(fig_path, dpi=DPI, bbox_inches="tight")
@@ -159,24 +162,20 @@ def plot_kappa_timeseries(results_dir: str, output_dir: str, season: str):
     # x-axis: continuous time in days
     x = days + hours_in_day / 24.0
 
-    fig, ax = plt.subplots(figsize=(10, 4.5))
+    fig, ax = plt.subplots(figsize=(12, 3.5))
 
-    ax.plot(x, kc_mean, "b-", linewidth=1.5, label="$\\bar{\\kappa}_c / P_{\\max}$")
+    ax.plot(x, kc_mean, "-", color="#1f77b4", linewidth=1.5, label="$\\bar{\\kappa}_c / P_{\\max}$")
     ax.fill_between(
         x,
         np.maximum(kc_mean - kc_std, 0),
         kc_mean + kc_std,
         alpha=0.25,
-        color="blue",
+        color="#1f77b4",
         label="$\\pm 1$ SD",
     )
 
     ax.set_xlabel("Day of Week", fontsize=12)
     ax.set_ylabel("$\\bar{\\kappa}_c / P_{\\max}$", fontsize=12)
-    ax.set_title(
-        f"Critical Coupling Time Series — {season.capitalize()} Week",
-        fontsize=13,
-    )
 
     # x ticks at day boundaries
     ax.set_xticks(range(N_DAYS := 7))

@@ -23,12 +23,11 @@ RESULTS_DIR = os.path.join(SCRIPT_DIR, "results")
 FIGURES_DIR = os.path.join(SCRIPT_DIR, "figures")
 os.makedirs(FIGURES_DIR, exist_ok=True)
 
-# Colors for m configs
-COLORS = {
-    "m=0_pcc_direct": "#1f77b4",
-    "m=4_pcc_direct": "#ff7f0e",
-    "m=8_pcc_direct": "#2ca02c",
-    "m=4_random": "#d62728",
+M_COLORS = {
+    "m=0_pcc_direct":  "#888888",   # gray (baseline)
+    "m=4_pcc_direct":  "#2ca02c",   # tab green
+    "m=8_pcc_direct":  "#8c564b",   # tab brown
+    "m=4_random":      "#1f77b4",   # tab blue
 }
 LABELS = {
     "m=0_pcc_direct": "m=0 (baseline)",
@@ -41,7 +40,7 @@ TIMESTEP_ORDER = ["00:00", "06:00", "09:00", "12:00", "18:00"]
 
 
 def plot_sq3_1():
-    """SQ3-1: S vs alpha/alpha* multi-panel, 5 rows (timesteps), 4 lines (m configs)."""
+    """SQ3-1: S vs alpha/alpha* multi-panel, 2x3 grid (5 timesteps + empty)."""
     sweep_path = os.path.join(RESULTS_DIR, "multistep", "sq3_multistep_sweep.csv")
     if not os.path.exists(sweep_path):
         print(f"  SKIP SQ3-1: {sweep_path} not found")
@@ -49,15 +48,16 @@ def plot_sq3_1():
 
     df = pd.read_csv(sweep_path)
 
-    fig, axes = plt.subplots(5, 1, figsize=(10, 18), sharex=True, sharey=True)
+    fig, axes = plt.subplots(2, 3, figsize=(14, 8), sharex=True, sharey=True)
+    axes_flat = axes.flatten()
 
-    for row_idx, t_label in enumerate(TIMESTEP_ORDER):
-        ax = axes[row_idx]
+    for panel_idx, t_label in enumerate(TIMESTEP_ORDER):
+        ax = axes_flat[panel_idx]
         df_t = df[df["timestep"] == t_label]
 
         for (m, strategy), group in df_t.groupby(["m", "strategy"]):
             config_key = f"m={m}_{strategy}"
-            color = COLORS.get(config_key, "gray")
+            color = M_COLORS.get(config_key, "gray")
             label = LABELS.get(config_key, config_key)
 
             # Compute mean ± std across instances
@@ -70,16 +70,22 @@ def plot_sq3_1():
                             agg["mean"] + agg["std"],
                             alpha=0.15, color=color)
 
-        ax.set_ylabel(r"$S$", fontsize=11)
         ax.set_title(f"t = {t_label}", fontsize=12)
         ax.set_ylim(-0.05, 1.05)
         ax.grid(True, alpha=0.3)
         ax.axhline(0.5, color='gray', linestyle='--', alpha=0.5)
-        if row_idx == 0:
-            ax.legend(fontsize=9, loc='upper left')
+        if panel_idx == 0:
+            ax.legend(fontsize=8, loc='upper left')
 
-    axes[-1].set_xlabel(r"$\alpha / \alpha^*$", fontsize=12)
-    fig.suptitle("SQ3-1: Cascade Resilience Across Times of Day", fontsize=14, y=0.995)
+    # Hide 6th panel
+    axes_flat[5].set_visible(False)
+
+    # Axis labels on edge panels only
+    for ax in axes[:, 0]:
+        ax.set_ylabel(r"$S$", fontsize=11)
+    for ax in axes[1, :]:
+        ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=12)
+
     fig.tight_layout()
 
     fig_path = os.path.join(FIGURES_DIR, "fig_sq3_1_sigmoid_multipanel.png")
@@ -89,7 +95,7 @@ def plot_sq3_1():
 
 
 def plot_sq3_2():
-    """SQ3-2: Edge survival by type at fixed absolute alpha slices (3 rows x 5 cols)."""
+    """SQ3-2: Edge survival by type at fixed absolute alpha slices (3 rows x 2 cols: 06:00, 12:00)."""
     sweep_path = os.path.join(RESULTS_DIR, "multistep", "sq3_multistep_sweep.csv")
     if not os.path.exists(sweep_path):
         print(f"  SKIP SQ3-2: {sweep_path} not found")
@@ -98,16 +104,17 @@ def plot_sq3_2():
     df = pd.read_csv(sweep_path)
     df["alpha_abs"] = df["alpha_over_alpha_star"] * df["alpha_star"]
 
+    timesteps_selected = ["06:00", "12:00"]
     slice_fractions = [0.3, 0.6, 0.9]
     n_rows = len(slice_fractions)
-    n_cols = len(TIMESTEP_ORDER)
+    n_cols = len(timesteps_selected)
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 12), sharey='row')
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(10, 12), sharey='row')
 
     # Config ordering for consistent bar positions
     config_keys_ordered = ["m=0_pcc_direct", "m=4_pcc_direct", "m=8_pcc_direct", "m=4_random"]
 
-    for col_idx, t_label in enumerate(TIMESTEP_ORDER):
+    for col_idx, t_label in enumerate(timesteps_selected):
         df_t = df[df["timestep"] == t_label]
         median_alpha_star = df_t["alpha_star"].median()
 
@@ -146,9 +153,9 @@ def plot_sq3_2():
             width = 0.35
 
             ax.bar(x - width/2, pcc_means, width, label="PCC edges",
-                   color="#e74c3c", alpha=0.8)
+                   color="#d62728", alpha=0.8)
             ax.bar(x + width/2, nonpcc_means, width, label="Non-PCC edges",
-                   color="#3498db", alpha=0.8)
+                   color="#1f77b4", alpha=0.8)
 
             ax.set_xticks(x)
             ax.set_xticklabels(configs, rotation=45, ha='right', fontsize=8)
@@ -166,8 +173,6 @@ def plot_sq3_2():
             if row_idx == 0 and col_idx == 0:
                 ax.legend(fontsize=9, loc='upper left')
 
-    fig.suptitle(r"SQ3-2: Edge Survival by Type at Fixed Absolute $\alpha$",
-                 fontsize=14, y=1.01)
     fig.tight_layout()
 
     fig_path = os.path.join(FIGURES_DIR, "fig_sq3_2_edge_survival.png")
@@ -195,11 +200,11 @@ def plot_sq3_3():
     ax = axes[0]
     df_optd = pd.read_csv(optd_sweep)
     agg = df_optd.groupby("alpha_over_alpha_star")["S"].agg(["mean", "std"]).reset_index()
-    ax.plot(agg["alpha_over_alpha_star"], agg["mean"], '-', color="#2ecc71", linewidth=2,
+    ax.plot(agg["alpha_over_alpha_star"], agg["mean"], '-', color="#2ca02c", linewidth=2,
             label="WS(50,4,0.1) — no PCC")
     ax.fill_between(agg["alpha_over_alpha_star"],
                      agg["mean"] - agg["std"], agg["mean"] + agg["std"],
-                     alpha=0.2, color="#2ecc71")
+                     alpha=0.2, color="#2ca02c")
 
     # Overlay PCC m=0 at noon if available
     if has_pcc:
@@ -207,12 +212,12 @@ def plot_sq3_3():
         df_noon = df_pcc[(df_pcc["timestep"] == "12:00") & (df_pcc["m"] == 0)]
         if not df_noon.empty:
             agg_pcc = df_noon.groupby("alpha_over_alpha_star")["S"].agg(["mean", "std"]).reset_index()
-            ax.plot(agg_pcc["alpha_over_alpha_star"], agg_pcc["mean"], '-', color="#e74c3c",
+            ax.plot(agg_pcc["alpha_over_alpha_star"], agg_pcc["mean"], '-', color="#d62728",
                     linewidth=2, label="PCC network m=0 (noon)")
             ax.fill_between(agg_pcc["alpha_over_alpha_star"],
                              agg_pcc["mean"] - agg_pcc["std"],
                              agg_pcc["mean"] + agg_pcc["std"],
-                             alpha=0.2, color="#e74c3c")
+                             alpha=0.2, color="#d62728")
 
     ax.axhline(0.5, color='gray', linestyle='--', alpha=0.5)
     ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=11)
@@ -228,7 +233,7 @@ def plot_sq3_3():
     rhos = df_rho["rho"].dropna().values
 
     if len(rhos) > 0:
-        ax.hist(rhos, bins=20, color="#2ecc71", alpha=0.7, edgecolor="black")
+        ax.hist(rhos, bins=20, color="#2ca02c", alpha=0.7, edgecolor="black")
         ax.axvline(np.mean(rhos), color='red', linestyle='--',
                    label=f"mean={np.mean(rhos):.3f}")
         ax.axvline(np.median(rhos), color='blue', linestyle='--',
@@ -245,12 +250,11 @@ def plot_sq3_3():
     n_total = len(df_rho)
     ax.bar(["Converged", "Not converged"],
            [n_conv, n_total - n_conv],
-           color=["#2ecc71", "#e74c3c"], alpha=0.8, edgecolor="black")
+           color=["#2ca02c", "#d62728"], alpha=0.8, edgecolor="black")
     ax.set_ylabel("Count", fontsize=11)
     ax.set_title(f"(c) Bisection Convergence ({100*n_conv/n_total:.0f}%)", fontsize=12)
     ax.grid(True, alpha=0.3, axis='y')
 
-    fig.suptitle("SQ3-3: Option D — Non-PCC Network Validation", fontsize=14, y=1.02)
     fig.tight_layout()
 
     fig_path = os.path.join(FIGURES_DIR, "fig_sq3_3_option_d.png")
@@ -277,7 +281,7 @@ def plot_sq3_4():
 
     for (m, strategy), group in df_noon.groupby(["m", "strategy"]):
         config_key = f"m={m}_{strategy}"
-        color = COLORS.get(config_key, "gray")
+        color = M_COLORS.get(config_key, "gray")
         label = LABELS.get(config_key, config_key)
 
         agg = group.groupby("alpha_over_alpha_star")["T_rounds"].agg(["mean", "std"]).reset_index()
@@ -290,7 +294,6 @@ def plot_sq3_4():
 
     ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=12)
     ax.set_ylabel(r"Cascade depth $T$", fontsize=12)
-    ax.set_title("SQ3-4: Cascade Depth at Noon (t=12:00)", fontsize=13)
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
 
