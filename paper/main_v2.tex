@@ -1,8 +1,9 @@
-\documentclass[openany, oneside]{book}
+\documentclass[a4paper, 12pt]{article}
+\usepackage[HTML]{xcolor}
 \usepackage{graphicx, amsmath, amssymb, amsthm, commath, nameref, mathtools, enumitem, booktabs, comment, biblatex, tabularx, array}
 \addbibresource{2ndReferences.bib}
 \usepackage[most]{tcolorbox}
-\usepackage[HTML]{xcolor}
+\usepackage{float}
 \usepackage[a4paper, top = 2cm, bottom = 2.5cm, left = 2cm, right = 2cm]{geometry}
 
 \usepackage[
@@ -20,18 +21,14 @@
 
 \usepackage{cleveref}
 
-\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{theorem}{Theorem}[section]
 
 \raggedbottom
 
 \usepackage{placeins}
-\makeatletter
-\renewcommand\chapter{\FloatBarrier\par\vspace{2\baselineskip}%
-  \thispagestyle{plain}%
-  \global\@topnum\z@
-  \@afterindentfalse
-  \secdef\@chapter\@schapter}
-\makeatother
+\usepackage{etoolbox}
+\usepackage[font=small, labelfont=bf]{caption}
+\AtBeginEnvironment{tabular}{\small}
 
 \setcounter{secnumdepth}{3}
 \setcounter{tocdepth}{3}
@@ -117,9 +114,13 @@
 %%%%% %%%%%    %%%%% %%%%%
 %%%        %%%%        %%%
 
-\chapter*{Abstract}
-% TODO: To be written after the main body is finalised.
-Abstract to be written. This will summarise the causal chain from model development through problem identification, topology intervention, and the stability--resilience paradox.
+\begin{abstract}
+
+This report investigates how network topology affects synchronisation stability and cascade resilience in a renewable-integrated microgrid, using measured smart-meter and photovoltaic data from London households embedded in Watts–Strogatz small-world networks. Sweeping static power heterogeneity across the full dispersion range shifts the critical coupling by at most 4\%, indicating that static variance alone cannot account for the instability observed under realistic operation. Time-resolved simulation reveals a 22.6-fold day–night swing in the synchronisation threshold. This swing is traced to a structural bottleneck at the point of common coupling (PCC): at noon, the PCC absorbs the entire aggregate surplus through only four edges, imposing a per-edge stress roughly 30 times that of a typical household node. A targeted degree-augmentation intervention, justified by the lower bound $\kappa_c \geq |P_\mathrm{PCC}|/(d_0 + m)$, reduces the noon threshold by 50–83\% depending on edge budget, with all three directed strategies converging to the same inverse-degree scaling law. The same intervention is then tested against a DC cascade failure model. Adding PCC edges offers no improvement in cascade survival and often worsens it: the additional edges redistribute overload among more high-current neighbours rather than relieving the underlying bottleneck. The synchronisation benefit is confirmed damping-invariant across $\gamma \in [0.1, 5.0]$. Synchronisation thresholds and cascade outcomes therefore constitute joint constraints that cannot be satisfied by a single topological intervention.
+
+\end{abstract}
+
+\newpage
 
 %%%        %%%%%%%%%%%%%        %%%
 %%%%% %%%%%             %%%%% %%%%%
@@ -138,53 +139,52 @@ Abstract to be written. This will summarise the causal chain from model developm
 %         Introduction         %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Introduction}
-\label{ch:introduction}
+\section{Introduction}
+\label{sec:introduction}
 
-The global energy transition toward renewable generation is accelerating. The International Energy Agency projects that renewables will account for the majority of new electricity capacity installed worldwide within the current decade~\cite{Ref11}, and in the United Kingdom, renewable sources provided over 50\% of total electricity generation in 2024~\cite{Ref12}. Much of this growth is driven by distributed photovoltaic (PV) installations at the household and community level, which are fundamentally reshaping the structure of electricity networks. Traditional power grids rely on a small number of large, centralised generators connected through high-voltage transmission; modern microgrids, by contrast, integrate many small, intermittent generators distributed throughout the low-voltage distribution network~\cite{Ref1}. This architectural shift introduces new stability challenges that cannot be addressed by classical grid-planning methods alone.
+Renewable generation is reshaping electricity systems at an unprecedented pace. The International Energy Agency projects that renewables will account for the majority of new capacity installed globally within this decade~\cite{Ref11}, and in the United Kingdom alone, they supplied over 50\% of total electricity in 2024~\cite{Ref12}. A large share of this growth comes from distributed photovoltaic (PV) installations at household and community scale, which are transforming how electricity networks are structured. Classical grids depend on a handful of large, centralised generators feeding high-voltage transmission lines; microgrids, in contrast, draw on many small, intermittent sources spread across the low-voltage distribution layer~\cite{Ref1}. Managing synchronisation and stability in such systems requires tools that conventional grid-planning methods were not designed to provide.
 
-The stability of power networks is commonly studied through coupled-oscillator models derived from the swing equation. Filatrella et al.~\cite{Ref5} demonstrated that the second-order Kuramoto model provides a tractable yet physically faithful representation of power-grid synchronisation, capturing the essential interplay between power injection, damping, and sinusoidal coupling. Rohden et al.~\cite{Ref7} extended this framework to decentralised grids, showing that self-organised synchronisation can emerge in networks without central frequency control but is sensitive to network topology. Nishikawa and Motter~\cite{Ref6} provided a comparative analysis of existing synchronisation models, establishing conditions under which different formulations yield equivalent stability predictions. A comprehensive theoretical treatment of synchronisation in oscillator networks, including the role of the Jacobian structure, the implicit function theorem, and saddle-node bifurcation at the stability boundary, was given by D\"{o}rfler and Bullo~\cite{Ref15}. These studies collectively establish the analytical toolkit for understanding how network structure governs synchronisation thresholds.
+Coupled-oscillator models derived from the swing equation are the standard theoretical lens for power-network stability. Filatrella et al.~\cite{Ref5} showed that the second-order Kuramoto model captures the interplay between power injection, damping, and sinusoidal coupling with enough physical fidelity to be analytically tractable. Rohden et al.~\cite{Ref7} took this further, demonstrating that self-organised synchronisation can emerge in decentralised grids without central frequency control, though the outcome is sensitive to network topology. Nishikawa and Motter~\cite{Ref6} compared several synchronisation formulations and identified the conditions under which they produce equivalent stability predictions. The most comprehensive treatment of the problem---covering the Jacobian structure, the implicit function theorem, and saddle-node bifurcation at the stability boundary---was provided by D\"{o}rfler and Bullo~\cite{Ref15}. Together, these works supply the analytical foundation on which the present study builds.
 
-A separate but equally important failure mechanism in power networks is cascading overload. Watts~\cite{Ref2} introduced a threshold model for global cascades on random networks, providing a general framework for understanding how small perturbations can trigger system-wide failures. Carreras et al.~\cite{Ref3} applied cascade dynamics specifically to power transmission networks, identifying critical points at which the system transitions between resilient and vulnerable regimes. Motter and Lai~\cite{Ref4} demonstrated that targeted attacks on highly loaded nodes can trigger disproportionately large cascades, highlighting the role of network heterogeneity in failure propagation. More recently, Sch\"{a}fer et al.~\cite{Ref8} showed that dynamically induced cascading failures can arise even without external perturbations when power-flow redistribution after a single line trip triggers sequential overloads. Manik et al.~\cite{Ref9} further demonstrated that supply networks can exhibit instabilities without conventional overload, driven instead by topological features that create localised stress concentration.
+Synchronisation failure is not the only path to grid collapse. Cascading overload presents an equally serious threat and operates through entirely different dynamics. Watts~\cite{Ref2} established a general threshold model showing how a localised perturbation on a random network can escalate into a system-wide failure. Carreras et al.~\cite{Ref3} brought this framework to power transmission, identifying critical operating points where the system tips from resilient to vulnerable. Motter and Lai~\cite{Ref4} found that targeted removal of high-load nodes triggers cascades out of proportion to the initial disturbance, pointing to network heterogeneity as a key amplifier. Sch\"{a}fer et al.~\cite{Ref8} showed more recently that cascade dynamics can be induced purely by internal power-flow redistribution following a single line trip, without any external shock. Manik et al.~\cite{Ref9} extended the picture further, demonstrating that certain topological configurations create localised stress concentrations capable of destabilising an otherwise healthy system.
 
-The relationship between network topology and grid stability has motivated a growing body of work on topology optimisation. Witthaut and Timme~\cite{Ref13} demonstrated that adding a single transmission line to an oscillator network can paradoxically destroy synchronisation---a power-grid analogue of the classical Braess paradox---warning that naive topological upgrades may be counterproductive. Coletta and Jacquod~\cite{Ref14} provided a linear stability analysis of this phenomenon, mapping the conditions under which edge additions improve or degrade stability. In a constructive direction, Skardal et al.~\cite{Ref16} proposed a rewiring algorithm that optimises synchrony in Kuramoto networks with inertia, demonstrating that targeted topological changes can substantially lower synchronisation thresholds. Zhang et al.~\cite{Ref17} investigated how heterogeneous edge additions affect synchronizability in oscillatory power networks, finding that the location and number of added edges interact non-trivially with network structure.
+These stability concerns have driven sustained interest in topology optimisation as a design lever. Witthaut and Timme~\cite{Ref13} showed that a single added transmission line can paradoxically destroy synchronisation in an oscillator network---a power-grid instance of the classical Braess paradox---cautioning that well-intentioned upgrades can backfire. Coletta and Jacquod~\cite{Ref14} analysed the same phenomenon through linear stability theory, characterising the conditions under which edge additions help or hurt. On the constructive side, Skardal et al.~\cite{Ref16} developed a rewiring algorithm for inertial Kuramoto networks that substantially lowers synchronisation thresholds through targeted restructuring. Zhang et al.~\cite{Ref17} examined how heterogeneous edge placements affect synchronizability, finding that the benefit or cost of an added edge depends non-trivially on both its location and the number of edges already present.
 
-Despite this substantial body of theoretical work, most existing studies rely on synthetic or idealised power distributions. The dynamics of real microgrids are driven by measured household consumption and renewable generation profiles that vary on diurnal and seasonal timescales, producing time-dependent nodal power injections that continuously reshape the network's operating regime. This temporal variability introduces failure modes and bottleneck structures that do not arise in static or uniformly distributed scenarios.
+What most of this literature shares, however, is a reliance on synthetic or idealised power distributions. Real microgrids operate under household demand and PV generation profiles that shift continuously across diurnal and seasonal cycles, producing time-varying nodal power injections that repeatedly reconfigure the network's operating state. These temporal fluctuations give rise to failure modes and structural bottlenecks that simply do not appear in static or uniformly distributed models.
 
-The present study addresses this gap by combining the swing-equation synchronisation framework of Smith et al.~\cite{Ref10} with measured smart-meter consumption data from London households~\cite{Ref18} and photovoltaic generation records from UK Power Networks~\cite{Ref19}, embedded in Watts--Strogatz small-world network topologies~\cite{Ref20}. This data-driven approach reveals that the dominant instability mechanism in PV-integrated microgrids is not generic network disorder but a specific structural bottleneck at the point of common coupling (PCC), where aggregate surplus power must be absorbed through a small number of edges. The analysis proceeds through four stages: identification of the PCC bottleneck from temporal dynamics, development and analytical justification of a targeted topology intervention (PCC degree augmentation), systematic evaluation of this intervention under both synchronisation and cascade failure modes, and sensitivity analysis across damping regimes representative of varying renewable penetration levels.
+The present study bridges this gap by coupling the swing-equation framework of Smith et al.~\cite{Ref10} with measured smart-meter consumption data from London households~\cite{Ref18} and photovoltaic generation records from UK Power Networks~\cite{Ref19}, all embedded in Watts--Strogatz small-world topologies~\cite{Ref20}. Rather than generic network disorder, this data-driven approach points to a specific structural bottleneck at the point of common coupling (PCC), where the entire microgrid's aggregate surplus must pass through a small number of edges. The investigation unfolds in four stages: locating the PCC bottleneck from temporal dynamics, developing and analytically justifying a targeted degree-augmentation intervention, evaluating it against both synchronisation and cascade failure modes, and testing its robustness across damping regimes representing different levels of renewable penetration.
 
-The central finding is a stability--resilience paradox: adding edges to the PCC reduces the synchronisation threshold by up to 83\%, following an analytically derived inverse-degree scaling law, but the same intervention fails to improve---and can worsen---cascade failure resilience. This cross-model Braess-like effect demonstrates that single-objective topology optimisation can create false confidence, and that practical microgrid design must enforce dual constraints across mechanistically independent failure modes.
-
-The remainder of this report is organised as follows. \Cref{ch:model} develops the mathematical model and identifies the PCC bottleneck through progressively realistic scenarios. \Cref{ch:topology} presents the analytical foundation and edge-addition strategies for the topology intervention. \Cref{ch:experiments} reports systematic numerical experiments on budget scaling, cascade failure analysis, and sensitivity to damping parameters. \Cref{ch:discussion} synthesises the findings, discusses the stability--resilience paradox, and outlines directions for future work.
+The report is structured as follows. \Cref{sec:model} develops the mathematical model and traces the PCC bottleneck through progressively realistic scenarios. \Cref{sec:topology} establishes the analytical basis for the topology intervention and compares edge-addition strategies. \Cref{sec:experiments} presents systematic experiments covering budget scaling, cascade failure, and damping sensitivity. \Cref{sec:discussion} draws these threads together, interprets the stability--resilience paradox, and identifies directions for future work.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   Chapter 2: Mathematical Model & Problem Identification   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Mathematical Model \& Problem Identification}
-\label{ch:model}
+\section{Mathematical Model \& Problem Identification}
+\label{sec:model}
 
-This chapter develops the mathematical framework used throughout the report and applies it to progressively more realistic scenarios. Beginning from the swing equation and its baseline verification, the analysis moves through static power distribution effects to time-dependent data-driven dynamics, culminating in the identification of a structural bottleneck that motivates the topology intervention of \cref{ch:topology}.
+This chapter develops the mathematical framework used throughout the report and applies it to progressively more realistic scenarios. Beginning from the swing equation and its baseline verification, the analysis moves through static power distribution effects to time-dependent data-driven dynamics, culminating in the identification of a structural bottleneck that motivates the topology intervention of \cref{sec:topology}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   2.1 Swing Equation Framework   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Swing Equation Framework}
+\subsection{Swing Equation Framework}
 \label{sec:swing-equation}
 
-The dynamics of power grids are modelled using the second-order swing equation, which represents each of the \(n\) nodes in the network as a rotating machine with phase angle \(\theta_k(t)\), following the second-order Kuramoto model widely used in power-grid synchronisation studies~\cite{Ref5,Ref7}:
+To model network dynamics and conduct analysis, we will use the second-order swing equation: 
 \begin{equation}
     \frac{d^2 \theta_k}{d t^2} + \gamma \frac{d \theta_k}{d t} = P_k - \kappa \sum_{l = 1}^n A_{k l} \sin(\theta_k - \theta_l), \quad k = 1, 2, \ldots, n.
     \label{eq:swing}
 \end{equation}
-Here \(P_k\) denotes the power injection at node \(k\) (positive for generators, negative for consumers), \(\gamma\) is a uniform damping coefficient modelling dissipative effects, \(\kappa\) is the global coupling strength representing transmission capacity, and \(A_{kl}\) is the network adjacency matrix. The power flow along each edge \((k, l)\) is given by
+This portrays power grids as a connected network of \(n\) rotating machines (regarded as nodes), with phase angle  \(\theta_k(t)\).  \(P_k\) denotes the power generation (positive) and consumption (negative) of the \(k^{th}\) node,  \(\gamma\) is a uniform damping coefficient that models dissipative effects, \(\kappa\)
+is the global coupling strength that represents the strength of power transmission through the grid, and \(A_{kl}\) is the network adjacency matrix. The power  flow along each edge \((k, l)\) is determined by
 \begin{equation}
     f_{kl} = \kappa \sin(\theta_k - \theta_l).
     \label{eq:power-flow}
 \end{equation}
-
-Synchronisation is interpreted as frequency locking: all nodal frequencies converge to zero within a numerical tolerance over a terminal time window. For a given network and power configuration, the critical coupling \(\kappa_c\) is the smallest coupling strength that sustains synchronisation, estimated by bisection over \(\kappa\) with ensemble averaging across multiple network realisations.
+In the UK every node must remain synchronised to 50Hz (ref?), synchronisation is interpreted as frequency locking; akk nodal frequencies converge to zero within a numerical tolerance over a terminal time window. De-synchronisation can lead to instability, infrastructure damage, or large-scale failure of the grid. For a given network and power configuration, critical coupling ($\kappa_c$) is the smallest coupling strength that sustains synchronisation. It is estimated by bisection over  $\kappa$ : Eq. (1) is integrated from randomised initial conditions, convergence is checked over a terminal time window, the smallest value of $\kappa$ is recorded, and ensemble
+averages are computed for multiple network realisations.
 
 The network composition is tracked on the configuration simplex \((\eta_+, \eta_-, \eta_p)\), where
 \begin{equation}
@@ -199,7 +199,17 @@ and the class fractions are determined by the power distribution:
 This framework, introduced by Smith et al.~\cite{Ref10}, provides a geometric interpretation of synchronisation stability: different positions on the simplex correspond to different proportions of generators, consumers, and near-zero (prosumer) nodes, with the critical coupling varying systematically across the landscape.
 
 Unless otherwise stated, simulations use Watts--Strogatz small-world networks~\cite{Ref20} with the parameters listed in \cref{tab:parameters}.
-
+%The dynamics of power grids are modelled using the second-order swing equation, which represents each of the \(n\) nodes in the network as a rotating machine with phase angle \(\theta_k(t)\), following the second-order Kuramoto model widely used in power-grid synchronisation studies~\cite{Ref5,Ref7}:
+%\begin{equation}
+   % \frac{d^2 \theta_k}{d t^2} + \gamma \frac{d \theta_k}{d t} = P_k - \kappa \sum_{l = 1}^n A_{k l} \sin(\theta_k - \theta_l), \quad k = 1, 2, \ldots, n.
+    \label{eq:swing}
+%\end{equation}
+%Here \(P_k\) denotes the power injection at node \(k\) (positive for generators, negative for consumers), \(\gamma\) is a uniform damping coefficient (dimensionless) modelling dissipative effects, \(\kappa\) is the global coupling strength representing transmission capacity, and \(A_{kl}\) is the network adjacency matrix. The power flow along each edge \((k, l)\) is given by
+%\begin{equation}
+   % f_{kl} = \kappa \sin(\theta_k - \theta_l).
+ %   \label{eq:power-flow}
+%\end{equation}
+%Synchronisation is interpreted as frequency locking: all nodal frequencies converge to zero within a numerical tolerance over a terminal time window. For a given network and power configuration, the critical coupling \(\kappa_c\) is the smallest coupling strength that sustains synchronisation, estimated by bisection over \(\kappa\) with ensemble averaging across multiple network realisations.
 \begin{table}[ht]
     \centering
     \caption{Fixed simulation parameters used across all experiments, following Smith et al.~\cite{Ref10}. Total power is normalised to unity.}
@@ -217,33 +227,55 @@ Unless otherwise stated, simulations use Watts--Strogatz small-world networks~\c
     \end{tabularx}
 \end{table}
 
+\begin{table}[ht]
+    \centering
+    \caption{Key symbols used throughout the report.}
+    \label{tab:symbols}
+    \begin{tabularx}{0.75\textwidth}{cY}
+        \toprule
+        \textbf{Symbol} & \textbf{Description} \\
+        \midrule
+        \(\kappa\) & Coupling strength \\
+        \(\kappa_c\) & Critical coupling strength for synchronisation \\
+        \(\hat{\kappa}_c\) & Normalised critical coupling, \(\kappa_c / P_{\max}\) \\
+        \(\bar{\kappa}_c\) & Ensemble-averaged critical coupling \\
+        \(P_i\) & Net power injection at node \(i\) (positive: generator, negative: consumer) \\
+        \(\eta_+,\, \eta_-,\, \eta_p\) & Generator, consumer, and prosumer fractions on the configuration simplex \\
+        \(d_0\) & Baseline degree of the PCC node \\
+        \(m\) & Number of edges added by the topology intervention \\
+        \(S\) & Cascade survival ratio (fraction of edges surviving cascade) \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   2.2 Model Assumptions   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Model Assumptions}
+\subsection{Model Assumptions}
 \label{sec:assumptions}
 
 The following assumptions underpin the analysis:
 \begin{enumerate}[label=(\roman*)]
-    \item \textbf{Homogeneous coupling.} All edges share a constant coupling strength \(\kappa\); heterogeneous line impedances are not modelled.
-    \item \textbf{Uniform damping.} All nodes share a constant damping coefficient \(\gamma\).
-    \item \textbf{Power balance.} The system satisfies \(\sum_{k=1}^n P_k = 0\) at all times, enforced either by symmetric class splits or by a point-of-common-coupling (PCC) slack node.
-    \item \textbf{Static topology.} The adjacency matrix \(A_{kl}\) is fixed during each simulation; no self-healing or adaptive reconfiguration is modelled.
-    \item \textbf{Frequency-lock criterion.} Synchronisation is achieved when \(|\dot{\theta}_k(t)| < \varepsilon\) for all nodes over a terminal window.
-    \item \textbf{Small-world proxy.} Watts--Strogatz networks \(WS(n=50, \bar{K}=4, q=0.1)\) serve as microgrid topology proxies.
+    \item \textbf{Homogeneous coupling} - All edges share a constant coupling strength \(\kappa\); heterogeneous line impedances are not modelled.
+    \item \textbf{Uniform damping} - All nodes share a constant damping coefficient \(\gamma\).
+    \item \textbf{Power balance} - The system satisfies \(\sum_{k=1}^n P_k = 0\) at all times, enforced by symmetric class splits or by a point-of-common-coupling (PCC) slack node.
+    \item \textbf{Static topology} - The adjacency matrix \(A_{kl}\) is fixed during each simulation; no self-healing or adaptive reconfiguration is modelled.
+    \item \textbf{Frequency-lock criterion} - Synchronisation occurs when \(|\dot{\theta}_k(t)| < \varepsilon\) for all nodes over a terminal window.
+    \item \textbf{Small-world proxy} - Watts--Strogatz networks \(WS(n=50, \bar{K}=4, q=0.1)\) serve as micro-grid topology proxies.
 \end{enumerate}
 
-These assumptions enable controlled comparison across the experiments that follow. Subsequent sections progressively relax selected assumptions: \cref{sec:temporal-dynamics} introduces time-dependent power injections from measured data, and \cref{ch:topology} modifies the network topology through targeted edge additions.
+These assumptions allow controlled comparison across the following work. Subsequent sections relax selected assumptions: \cref{sec:temporal-dynamics} introduces time-dependent power injections from measured data, and \cref{sec:topology} modifies the network topology through targeted edge additions.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   2.3 Baseline Verification   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Baseline Verification}
+\subsection{Baseline Verification}
 \label{sec:baseline}
+Before extending the model, the numerical simulations were validated against the results of Smith et al.~\cite{Ref10} (specifically their Figures 1C-D). In particular, the critical coupling landscape was computed over the configuration simplex for representative network realisations at rewiring probabilities \(q=0\) and \(q=0.1\). We also computed the dependence of \(\bar{\kappa}_c / P_{\max}\) on the number of consumers \(n_-\) was evaluated for \(q \in \{0.0, 0.1, 0.4, 1.0\}\).
+%Before extending the model, the numerical pipeline was validated against the results of Smith et al.~\cite{Ref10} (their Figures~1C--D). The critical coupling landscape was computed over the configuration simplex for representative network realisations at rewiring probabilities \(q = 0\) and \(q = 0.1\), and the dependence of \(\bar{\kappa}_c / P_{\max}\) on the number of consumers \(n_-\) was evaluated for \(q \in \{0.0, 0.1, 0.4, 1.0\}\).
 
-Before extending the model, the numerical pipeline was validated against the results of Smith et al.~\cite{Ref10} (their Figures~1C--D). The critical coupling landscape was computed over the configuration simplex for representative network realisations at rewiring probabilities \(q = 0\) and \(q = 0.1\), and the dependence of \(\bar{\kappa}_c / P_{\max}\) on the number of consumers \(n_-\) was evaluated for \(q \in \{0.0, 0.1, 0.4, 1.0\}\).
 
 \begin{figure}[ht]
     \centering
@@ -252,46 +284,52 @@ Before extending the model, the numerical pipeline was validated against the res
     \label{fig:reproduction}
 \end{figure}
 
-The reproduced data matches the published structure, confirming that \(\bar{\kappa}_c\) is minimised when generators and consumers are balanced at the simplex centre, and that increased topological randomness lowers the synchronisation threshold. This validation establishes confidence in the numerical implementation for all subsequent experiments.
+%The reproduced data matches the published structure, confirming that \(\bar{\kappa}_c\) is minimised when generators and consumers are balanced at the simplex centre, and that increased topological randomness lowers the synchronisation threshold. This validation establishes confidence in the numerical implementation for all subsequent experiments.
+This data matches the reported structure and confirms that \(\bar{\kappa_c}\) is minimised when generators and consumers are balanced at the simplex centre. It also establishes that increased topological randomness q lowers the synchronisation threshold. This validation provides confidence that the numerical implementation for all subsequent work.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   2.4 Static Power Distribution Effects   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Static Power Distribution Effects}
+\subsection{Static Power Distribution Effects}
 \label{sec:static-effects}
+%The simplex framework suggests that network composition and topology can strongly influence synchronisation thresholds .[!Include Reference! ]. However, many baseline studies assume uniform nodal magnitudes within each class. Real distribution systems are heterogeneous as a household demand varies and generation capacity is unevenly distributed. This chapter therefore tests whether static heterogeneity alone alters critical coupling, and distinguishes between dispersion of magnitudes within a balanced class split and concentration of generation into a small number of high capacity nodes.
+The verification work established the qualitative dependence of \(\kappa_c\) on the composition and topology of the network. A natural follow-up question is whether the distribution of power magnitudes within a fixed composition also matters. In the real-world, micro-grids have heterogeneous household demands and generation capacity is unevenly distributed. Hence, we now determine whether static heterogeneity alone can produce significant stability variations.
 
-The baseline verification established the qualitative dependence of \(\kappa_c\) on network composition and topology. A natural follow-up question is whether the \emph{distribution} of power magnitudes within a fixed composition also matters. Real microgrids exhibit heterogeneous household demands and uneven generation capacities, so it is important to determine whether static heterogeneity alone can produce significant stability variations.
+%Real microgrids exhibit heterogeneous household demands and uneven generation capacities, so it is important to determine whether static heterogeneity alone can produce significant stability variations.
 
-To test this, two experiments were conducted on \(WS(n=50, \bar{K}=4, q=0.1)\) networks with fixed class counts \(n_+ = n_- = 25\), total power \(P_{\max} = 1.0\), and mean magnitude \(\bar{P} = 0.04\). In the first, generator magnitudes were drawn from a truncated normal distribution \(\mathcal{N}(\bar{P}, \sigma^2)\) and renormalised to preserve total generation; in the second, the same procedure was applied to consumers. The relative dispersion \(\sigma / \bar{P}\) was swept over the range \([0, 0.8]\) with 200 realisations per point.
+To test this, two experiments were conducted on \(WS(n=50, \bar{K}=4, q=0.1)\) networks with fixed class counts \(n_+ = n_- = 25\), total power \(P_{\max} = 1.0\), and mean magnitude \(\bar{P} = 0.04\). \\In the first, generator magnitudes were drawn from a truncated normal distribution \(\mathcal{N}(\bar{P}, \sigma^2)\) and then re- normalised to preserve total generation.\\In the second, the same procedure was applied to consumers, preserving net power balance.\\ The relative dispersion \(\sigma / \bar{P}\) was swept over the range \([0, 0.8]\) with 200 realisations per point.
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.9\textwidth]{fig2a_heterogeneity.png}
-    \caption{Effect of power magnitude heterogeneity on critical coupling. The horizontal axis shows relative dispersion \(\sigma / \bar{P}\) for generator-side (blue) and consumer-side (orange) perturbations, with the vertical axis showing \(\bar{\kappa}_c / P_{\max}\). The total variation is approximately 4\% across the full range, and generator and consumer curves are statistically indistinguishable, indicating that magnitude dispersion within balanced classes has negligible effect on synchronisation thresholds.}
+    \includegraphics[width=0.6\textwidth]{fig2a_heterogeneity.png}
+    \caption{Effect of power magnitude heterogeneity on critical coupling. The horizontal axis shows relative dispersion \(\sigma / \bar{P}\) for generator-side (blue) and consumer-side (red) perturbations, with the vertical axis showing \(\bar{\kappa}_c / P_{\max}\).}%The total variation small for both, approximately 4\% across the full range, and generator and consumer curves are statistically indistinguishable, indicating that magnitude dispersion within balanced classes has negligible effect on synchronisation thresholds.
     \label{fig:heterogeneity}
 \end{figure}
+As \cref{fig:heterogeneity} shows, \(\kappa_c\) variation is small, about 4\% across the full dispersion range (from 0.121 to 0.126), and the generator-side and consumer-side curves are statistically indistinguishable. However, this negative result is informative: it indicates that magnitude dispersion within balanced classes has negligible effect on synchronisation thresholds.
 
-As \cref{fig:heterogeneity} shows, \(\kappa_c\) varies by only about 4\% across the entire dispersion range (from 0.121 to 0.126), and the generator-side and consumer-side curves are statistically indistinguishable. This negative result is informative: simply redistributing power magnitudes within a fixed class balance does not substantially alter synchronisation requirements.
 
-However, heterogeneity can take a different form. Rather than dispersing magnitudes symmetrically, generation may be concentrated into a small number of high-capacity nodes. To isolate this effect, a single ``big station'' generator was assigned a fraction \(r\) of total generation while 24 small stations shared the remainder \(1 - r\), with \(r\) swept over \([0.04, 0.95]\).
+%As \cref{fig:heterogeneity} shows, \(\kappa_c\) varies by only about 4\% across the entire dispersion range (from 0.121 to 0.126), and the generator-side and consumer-side curves are statistically indistinguishable. This negative result is informative: simply redistributing power magnitudes within a fixed class balance does not substantially alter synchronisation requirements.
+
+However, heterogeneity can take a different form. Rather than dispersing magnitudes symmetrically, generation may be concentrated into a small number of high-capacity nodes. To isolate this effect, a single ``big station'' generator was assigned a fraction, \(r\), of total generation, while 24 small stations shared the remainder \(1 - r\), with \(r\) swept over \([0.04, 0.95]\).
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.9\textwidth]{fig2c_centralization.png}
-    \caption{Effect of generation centralisation on critical coupling. The horizontal axis shows the centralisation ratio \(r\) (fraction of total generation carried by one node), with the vertical axis showing \(\bar{\kappa}_c / P_{\max}\). Critical coupling increases monotonically with \(r\), rising from 0.121 at \(r = 0.04\) (uniform distribution) to 0.289 at \(r = 0.95\), a 139\% increase. This demonstrates that concentration of generation, rather than generic dispersion, is the dominant static risk factor for synchronisation.}
+    \includegraphics[width=0.6\textwidth]{fig2c_centralization.png}
+    \caption{Effect of generation centralisation on critical coupling. The horizontal axis shows the centralisation ratio \(r\) (fraction of total generation carried by one node), with the vertical axis showing \(\bar{\kappa}_c / P_{\max}\).} %Critical coupling increases monotonically with \(r\), rising from 0.121 at \(r = 0.04\) (uniform distribution) to 0.289 at \(r = 0.95\), a 139\% increase. This demonstrates that concentration of generation, rather than generic dispersion, is the dominant static risk factor for synchronisation.}
     \label{fig:centralisation}
 \end{figure}
 
-The contrast with the heterogeneity sweep is striking. As shown in \cref{fig:centralisation}, \(\kappa_c\) increases monotonically with \(r\), rising from 0.121 at \(r = 0.04\) to 0.289 at \(r = 0.95\)---a 139\% increase. Concentration of generation onto a single node, rather than symmetric dispersion, is the dominant static risk factor for synchronisation stability.
+The contrast with the heterogeneity sweep is significant.
+As shown in \cref{fig:centralisation}, \(\kappa_c\) increases monotonically with \(r\), rising from 0.121 at \(r = 0.04\) (uniform distribution) to 0.289 at \(r = 0.95\), a 139\% increase. This result suggests that concentration of generation onto a single node, rather than symmetric dispersion, is the dominant static risk factor for synchronisation stability.
 
-Together, these results establish that the \emph{shape} of the power distribution within balanced classes has negligible effect on \(\kappa_c\), whereas the \emph{concentration} of generation is a potent driver. These are idealised, time-independent distributions, however. If static heterogeneity alone cannot generate large swings in synchronisation requirements, then the pronounced instability observed in real microgrids must arise from either structural concentration or temporal reconfiguration of nodal roles. The next section investigates the latter by incorporating measured time-series data.
+Together, these results established that the shape of the power distribution within balanced classes has a limited effect on \(\kappa_c\), whereas concentrating generation onto a small number of nodes gives a substantial increase. However, these are idealised, time-independent distributions. If static heterogeneity alone cannot generate large swings in synchronisation requirements, then the pronounced instability observed in real micro-grids must arise from either structural concentration or temporal reconfiguration of nodal roles. The next section investigates the latter by incorporating measured time-series data.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   2.5 Data-Driven Temporal Dynamics   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Data-Driven Temporal Dynamics}
+\subsection{Data-Driven Temporal Dynamics}
 \label{sec:temporal-dynamics}
 
 The preceding analysis showed that static power distributions produce at most modest variations in \(\kappa_c\). Real microgrids, however, do not operate at fixed configurations: household demand and photovoltaic generation fluctuate on diurnal and seasonal timescales, continuously reshaping the network's position on the configuration simplex. To capture these dynamics, the model is now driven by measured data.
@@ -311,7 +349,7 @@ Each of the 336 half-hourly time steps (7 days \(\times\) 48 intervals) is mappe
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.9\textwidth]{fig3a_simplex_trajectory.png}
+    \includegraphics[width=0.65\textwidth]{fig3a_simplex_trajectory.png}
     \caption{Configuration-simplex trajectory over one summer week under 100\% PV balancing. Each point represents one half-hourly time step, coloured by time of day. The trajectory exhibits cyclic migration between night consumer-dominated states (lower right) and midday generator-dominated states (upper left), remaining near peripheral simplex regions associated with higher synchronisation fragility. The system avoids the low-\(\kappa_c\) central balanced region throughout the daily cycle.}
     \label{fig:simplex-trajectory}
 \end{figure}
@@ -356,7 +394,7 @@ which far exceeds the 4\% variation produced by static heterogeneity in \cref{se
 %   2.6 PCC Bottleneck Identification   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{PCC Bottleneck Identification}
+\subsection{PCC Bottleneck Identification}
 \label{sec:pcc-bottleneck}
 
 The noon vulnerability peak identified in \cref{sec:temporal-dynamics} demands a mechanistic explanation. Around midday, nearly all 49 households become net generators, forcing the PCC to absorb the entire aggregate surplus. With \(|P_{\mathrm{PCC}}| \approx 62\)~kW flowing through \(\mathrm{deg}(\mathrm{PCC}) = 4\) edges, the per-edge stress at the PCC is
@@ -371,29 +409,29 @@ A typical household exports approximately 2~kW across four edges (\(\approx\)0.5
 \end{equation}
 the node with the largest stress-to-degree ratio dominates the synchronisation requirement---and in this system, that node is unambiguously the PCC.
 
-This analysis establishes the central finding of the chapter: data-driven PV microgrids experience extreme noon instability, and the root cause is a topological bottleneck at the point of common coupling. The PCC must absorb the aggregate surplus of the entire microgrid through a small number of edges, creating a structural constraint that dwarfs all static distribution effects. This bottleneck is not a feature of the data or the particular household sample; it is an inherent consequence of PCC-mediated microgrid architecture under synchronised renewable generation. The identification of this local, degree-driven constraint motivates targeted structural intervention, which is the subject of \cref{ch:topology}.
+This analysis establishes the central finding of the chapter: data-driven PV microgrids experience extreme noon instability, and the root cause is a topological bottleneck at the point of common coupling. The PCC must absorb the aggregate surplus of the entire microgrid through a small number of edges, creating a structural constraint that dwarfs all static distribution effects. This bottleneck is not a feature of the data or the particular household sample; it is a likely structural consequence of PCC-mediated microgrid architecture under synchronised renewable generation, at least for networks of this scale and topology. The identification of this local, degree-driven constraint motivates targeted structural intervention, which is the subject of \cref{sec:topology}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   Chapter 3: Topology Optimisation Method   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Topology Optimisation Method}
-\label{ch:topology}
+\section{Topology Optimisation Method}
+\label{sec:topology}
 
-\Cref{ch:model} identified a structural bottleneck at the PCC as the root cause of noon synchronisation vulnerability. This chapter develops a targeted topology intervention to address it. The approach proceeds from physical motivation through analytical justification to method design and feasibility demonstration.
+\Cref{sec:model} identified a structural bottleneck at the PCC as the root cause of noon synchronisation vulnerability. This chapter develops a targeted topology intervention to address it. The approach proceeds from physical motivation through analytical justification to method design and feasibility demonstration.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   3.1 Motivation: Why Topology?   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Motivation: Why Topology?}
+\subsection{Motivation: Why Topology?}
 \label{sec:why-topology}
 
 The PCC bottleneck identified in \cref{sec:pcc-bottleneck} is a local, degree-driven constraint. A natural first question is whether \emph{global} network restructuring can alleviate it. To test this, a sweep over rewiring probability \(q \in \{0, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0\}\) was conducted on \(WS(n=50, \bar{K}=4)\) networks, evaluating 50 ensembles across 56 timestamps (7 days \(\times\) 8 representative hours) at each value of \(q\).
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.9\textwidth]{fig_sq4_1_kc_vs_q.png}
+    \includegraphics[width=0.6\textwidth]{fig_sq4_1_kc_vs_q.png}
     \caption{Critical coupling as a function of rewiring probability \(q\). The noon threshold \(\bar{\kappa}_c / P_{\max}\) (upper curve) remains between 6.6 and 6.7 across all \(q\), and the dawn threshold (lower curve) clusters tightly around 0.294. Despite substantial changes in global network statistics (path length, clustering coefficient), neither the noon nor the dawn synchronisation threshold is materially affected. This confirms that the stability bottleneck is node-local rather than governed by global topology.}
     \label{fig:q-sweep}
 \end{figure}
@@ -404,7 +442,7 @@ The result, shown in \cref{fig:q-sweep}, is negative but informative. The noon c
 %   3.2 Analytical Foundation   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Analytical Foundation}
+\subsection{Analytical Foundation}
 \label{sec:analytical}
 
 The negative result of \cref{sec:why-topology} establishes that global topology is irrelevant to the PCC bottleneck. The natural follow-up question is \emph{why} local degree augmentation should help. We address this in two steps: first a qualitative argument from the steady-state equations, then a formal lower bound on the critical coupling.
@@ -455,7 +493,7 @@ Under noon conditions, \(|P_{\mathrm{PCC}}| / P_{\max} = 20.85\) and \(d_0 = 4\)
 %   3.3 Edge Addition Strategies   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Edge Addition Strategies}
+\subsection{Edge Addition Strategies}
 \label{sec:strategies}
 
 Recent work has shown that heterogeneous edge additions can improve synchronizability in oscillatory power networks~\cite{Ref17}. Guided by \cref{thm:lower-bound}, three directed edge-addition strategies are defined, each motivated by a different physical heuristic:
@@ -470,7 +508,7 @@ A random baseline (uniformly sampling non-adjacent node pairs) is included for c
 %   3.4 Feasibility Demonstration   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Feasibility Demonstration (\texorpdfstring{\(m = 4\)}{m = 4})}
+\subsection{Feasibility Demonstration (\texorpdfstring{\(m = 4\)}{m = 4})}
 \label{sec:feasibility}
 
 To demonstrate that targeted edge addition is effective, the three directed strategies and the random baseline were evaluated under a budget of \(m = 4\) additional edges, with 50 ensemble realisations. \Cref{tab:strategy-comparison} summarises the noon results.
@@ -479,7 +517,7 @@ To demonstrate that targeted edge addition is effective, the three directed stra
     \centering
     \caption{Strategy comparison at noon under a budget of \(m = 4\) additional edges. All three directed strategies reduce the noon critical coupling by approximately 50\%, while random addition provides only marginal improvement (3.4\%).}
     \label{tab:strategy-comparison}
-    \begin{tabularx}{0.45\textwidth}{ccc}
+    \begin{tabularx}{0.6\textwidth}{ccc}
         \toprule
         \textbf{Strategy} & \(\boldsymbol{\bar{\kappa}_c(\mathrm{Noon}) / P_{\max}}\) & \textbf{Change} \\
         \midrule
@@ -494,14 +532,14 @@ To demonstrate that targeted edge addition is effective, the three directed stra
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.9\textwidth]{fig_sq4_2_strategy_bars.png}
+    \includegraphics[width=0.65\textwidth]{fig_sq4_2_strategy_bars.png}
     \caption{Bar comparison of noon critical coupling across strategies for \(m = 4\). The three directed strategies (Max Power, Score, PCC Direct) achieve nearly identical reductions of approximately 50\%, while random edge addition barely improves upon the baseline. Error bars show one standard deviation across 50 ensemble realisations.}
     \label{fig:strategy-bars}
 \end{figure}
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.9\textwidth]{fig_sq4_3_strategy_timeseries.png}
+    \includegraphics[width=\textwidth]{fig_sq4_3_strategy_timeseries.png}
     \caption{Seven-day \(\kappa_c(t)\) trajectories for each strategy at \(m = 4\). Directed strategies (coloured curves) remain consistently below the baseline and random curves throughout the daily cycle, preserving the temporal shape while uniformly compressing the amplitude. The three directed strategies are visually indistinguishable, confirming their functional equivalence.}
     \label{fig:strategy-timeseries}
 \end{figure}
@@ -514,19 +552,19 @@ These results establish that targeted PCC edge addition is a viable intervention
 %   Chapter 4: Numerical Experiments & Results   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Numerical Experiments \& Results}
-\label{ch:experiments}
+\section{Numerical Experiments \& Results}
+\label{sec:experiments}
 
-\Cref{ch:topology} demonstrated that \(m = 4\) directed edges reduce the noon critical coupling by approximately 50\%. This chapter scales the analysis to a systematic budget sweep, identifies the governing scaling law, and then tests whether the topology intervention transfers to cascade failure resilience---a mechanistically distinct failure mode.
+\Cref{sec:topology} demonstrated that \(m = 4\) directed edges reduce the noon critical coupling by approximately 50\%. This chapter scales the analysis to a systematic budget sweep, identifies the governing scaling law, and then tests whether the topology intervention transfers to cascade failure resilience---a mechanistically distinct failure mode.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   4.1 Budget Scaling and Convergence   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Budget Scaling and Convergence}
+\subsection{Budget Scaling and Convergence}
 \label{sec:budget-scaling}
 
-The edge budget was swept over \(m \in \{0, 1, 2, 4, 6, 8, 10, 15, 20\}\) with 10 ensemble realisations per strategy. \Cref{fig:m-sweep} and \cref{tab:lower-bound} present the results alongside the analytical lower bound from \cref{thm:lower-bound}.
+Building on the feasibility result of \cref{sec:feasibility}, the edge budget was swept systematically over \(m \in \{0, 1, 2, 4, 6, 8, 10, 15, 20\}\) with 50 ensemble realisations per strategy, consistent with the ensemble sizes used throughout this report. \Cref{fig:m-sweep} and \cref{tab:lower-bound} present the results alongside the analytical lower bound from \cref{thm:lower-bound}.
 
 \begin{table}[ht]
     \centering
@@ -544,12 +582,6 @@ The edge budget was swept over \(m \in \{0, 1, 2, 4, 6, 8, 10, 15, 20\}\) with 1
     \end{tabularx}
 \end{table}
 
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=0.9\textwidth]{fig_sq4_4_m_sweep_combined.png}
-    \caption{Budget sweep: normalised critical coupling \(\kappa_c / P_{\max}\) as a function of added edges \(m\). Directed-strategy data points (markers) nearly overlap at every budget level. The red dashed curve shows the analytical lower bound \(20.85 / (4 + m)\) from \cref{thm:lower-bound}; the blue dashed curve shows the empirical fit \(25.7 / (4 + m)\); the shaded region denotes guaranteed instability below the bound. The three directed strategies converge to a single inverse-degree scaling law, with \(m = 4\) achieving 50\% reduction and \(m = 20\) reaching 83\%.}
-    \label{fig:m-sweep}
-\end{figure}
 
 Three conclusions emerge. First, the three directed strategies produce nearly identical results at every budget level, confirming that ``add edges to PCC'' matters far more than the particular heuristic used. Second, the critical coupling follows inverse-degree scaling:
 \begin{equation}
@@ -558,68 +590,93 @@ Three conclusions emerge. First, the three directed strategies produce nearly id
 \end{equation}
 with residuals below 5\%, consistent with the analytical bound at a roughly 23\% gap that reflects contributions from non-PCC nodes. Third, diminishing returns set in beyond \(m \approx 10\): the budget \(m = 4\) already yields 50\% reduction, while \(m = 20\) reaches 83\%. The day--night variation is preserved but uniformly compressed at all budget levels.
 
-The convergence of all strategies to a single scaling law is the key structural result of this section: in data-driven PCC microgrids, the optimisation landscape has essentially one degree of freedom---PCC degree.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.70\textwidth]{fig_sq4_4_m_sweep_combined.png}
+    \caption{Budget sweep: normalised critical coupling \(\kappa_c / P_{\max}\) as a function of added edges \(m\). Directed-strategy data points (markers) nearly overlap at every budget level. The red dashed curve shows the analytical lower bound \(20.85 / (4 + m)\) from \cref{thm:lower-bound}; the blue dashed curve shows the empirical fit \(25.7 / (4 + m)\); the shaded region denotes guaranteed instability below the bound. The three directed strategies converge to a single inverse-degree scaling law, with \(m = 4\) achieving 50\% reduction and \(m = 20\) reaching 83\%.}
+    \label{fig:m-sweep}
+\end{figure}
+
+
+The convergence of all strategies to a single scaling law is the key structural result of this section: in data-driven PCC microgrids of this scale and architecture, the optimisation landscape appears to have essentially one degree of freedom---PCC degree.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   4.2 Cascade Failure Analysis   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Cascade Failure Analysis}
+\FloatBarrier
+\subsection{Cascade Failure Analysis}
 \label{sec:cascade}
 
-The preceding results concern synchronisation (swing-equation) stability. However, real grids also fail through overload-driven cascading failures---a mechanistically distinct process. Cascading failure models have been extensively studied in network science~\cite{Ref2,Ref3,Ref4}, including dynamically induced cascading failures specific to power grids~\cite{Ref8}. To test whether the topology intervention transfers to this second failure mode, we adopt the DC cascade model of Smith et al.~\cite{Ref10}. The linearised DC power flow gives phase angles \(\boldsymbol{\theta} = L^\dag \boldsymbol{P}\) (where \(L^\dag\) is the graph-Laplacian pseudo-inverse) and edge flows
+
+The preceding results concern synchronisation (swing-equation) stability. However, real grids also fail through overload-driven cascading failures---a mechanistically distinct process. Cascading failure models have been extensively studied in network science~\cite{Ref2,Ref3,Ref4}, including dynamically induced cascading failures specific to power grids~\cite{Ref8}. To test whether the topology intervention transfers to this second failure mode, the DC cascade model of Smith et al.~\cite{Ref10} is adopted. The linearised DC power flow gives phase angles \(\boldsymbol{\theta} = L^\dag \boldsymbol{P}\) (where \(L^\dag\) is the graph-Laplacian pseudo-inverse) and edge flows
+
 \begin{equation}
     f_{kl} = B_{kl}(\theta_k - \theta_l),
     \label{eq:dc-flow}
 \end{equation}
+
 with susceptance \(B_{kl} = 1\). The cascade proceeds iteratively: all edges with \(|f_e| > \alpha\) are tripped, flows are recomputed in each connected component, and the process repeats until no further trips occur. The survival ratio \(S = |\text{surviving edges}| / |\text{initial edges}|\) quantifies resilience.
 
 Baseline validation without added edges confirms the cascade model responds meaningfully to network parameters: at $n=50$, survival curves display a sharp sigmoidal crossover near $\alpha/\alpha^* \approx 1$ with low ensemble variance, whereas $n=10$ networks show gradual transitions with high variability. More structured topologies (lower $q$) exhibit higher survival in the low-tolerance regime. These controls ensure that any absence of improvement under PCC edge addition cannot be attributed to insensitivity of the cascade framework.
 
-The experiment uses 50 ensemble realisations across 5 time slices (00:00, 06:00, 09:00, 12:00, 18:00) and 4 topologies (\(m = 0\), \(m = 4\) PCC direct, \(m = 4\) random, \(m = 8\) PCC direct), with 50 tolerance values \(\alpha / \alpha^*\) in \([0.1, 2.5]\), where \(\alpha^* = f_{\max}\) is the initial maximum edge current for each configuration.
-
-\begin{figure}[ht]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{fig_sq3_1.png}
+    \includegraphics[width=0.75\textwidth]{fig_sq3_1.png}
     \caption{Cascade survival ratio \(S\) versus normalised tolerance \(\alpha / \alpha^*\) across five time slices and four topologies. Adding PCC-directed edges does not improve cascade resilience: the \(m = 8\) PCC direct configuration (red) is consistently the weakest across all time slices. Random addition is nearly indistinguishable from the baseline. The step-like curve shape (rather than a smooth sigmoid) is a physical consequence of PCC structural heterogeneity, as confirmed by the control experiment in \cref{fig:control}.}
     \label{fig:cascade-survival}
 \end{figure}
 
+
+The experiment uses 50 ensemble realisations across 5 time slices (00:00, 06:00, 09:00, 12:00, 18:00) and 4 topologies (\(m = 0\), \(m = 4\) PCC direct, \(m = 4\) random, \(m = 8\) PCC direct), with 50 tolerance values \(\alpha / \alpha^*\) in \([0.1, 2.5]\), where \(\alpha^* = f_{\max}\) is the initial maximum edge current for each configuration.
+
+
+
+
+
+
 \Cref{fig:cascade-survival} presents the central negative result. In stark contrast to the swing-stability findings, adding edges to the PCC does not improve cascade resilience and often worsens it: the \(m = 8\) PCC direct configuration is consistently the weakest across all time slices. Random edge addition is nearly indistinguishable from the baseline.
 
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=0.9\textwidth]{fig_sq3_2.png}
-    \caption{Edge survival analysis at fixed absolute tolerance slices. Red bars indicate PCC edges; blue bars indicate non-PCC edges. PCC edges carry approximately 11\(\times\) the mean network current at noon and fail first in all configurations, acting as the initial domino in every cascade. Even when \(m = 8\) partially spreads flow across more PCC edges, the total survival ratio does not improve because final outcomes depend on whether isolated subnetworks can self-supply after PCC disconnection.}
-    \label{fig:edge-survival}
-\end{figure}
 
 The mechanism is revealed by \cref{fig:edge-survival}: PCC edges carry approximately 11\(\times\) the network-average current and fail first in all configurations. Additional PCC edges do not prevent the cascade; they merely redistribute the overload among more PCC-adjacent edges, all of which remain far above the network mean and trip in sequence.
 
-\begin{figure}[ht]
+
+To verify that this step-like survival pattern is a structural consequence of PCC heterogeneity rather than a numerical artefact, a control experiment was conducted on 100 uniform (no-PCC) \(WS(50, 4, 0.1)\) networks with \(P = \pm 1/25\).
+
+\begin{figure}[!htbp]
     \centering
-    \includegraphics[width=0.9\textwidth]{fig_sq3_3.png}
+    \includegraphics[width=0.70\textwidth]{fig_sq3_3.png}
     \caption{Control experiment: cascade behaviour in 100 uniform (no-PCC) \(WS(50, 4, 0.1)\) networks with \(P = \pm 1/25\). The control recovers smooth sigmoid behaviour consistent with Smith et al.~\cite{Ref10}, confirming that the step-like pattern observed in PCC networks is a physical consequence of structural heterogeneity, not a numerical artefact.}
     \label{fig:control}
 \end{figure}
 
-\begin{figure}[ht]
+\newpage
+\begin{figure}[h]
     \centering
-    \includegraphics[width=0.9\textwidth]{fig_sq3_4.png}
+    \includegraphics[width=\textwidth]{fig_sq3_2.png}
+    \caption{Edge survival analysis at fixed absolute tolerance slices. Red bars indicate PCC edges; blue bars indicate non-PCC edges. PCC edges carry approximately 11\(\times\) the mean network current at noon and fail first in all configurations, acting as the initial domino in every cascade. Even when \(m = 8\) partially spreads flow across more PCC edges, the total survival ratio does not improve because final outcomes depend on whether isolated subnetworks can self-supply after PCC disconnection.}
+    \label{fig:edge-survival}
+\end{figure}
+\newpage
+
+As shown in \cref{fig:control}, the control recovers the smooth sigmoid cascade curve reported by Smith et al.~\cite{Ref10}, confirming that PCC structural heterogeneity---not numerics---is responsible for the step-like behaviour. A complementary view of cascade dynamics comes from the recursion depth: whereas \cref{fig:cascade-survival} shows the final survival outcome, \cref{fig:cascade-depth} tracks how many redistribution--trip rounds the cascade takes to reach that outcome.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.60\textwidth]{fig_sq3_4.png}
     \caption{Cascade recursion depth \(T\) versus normalised tolerance \(\alpha / \alpha^*\) at noon. The \(m = 8\) PCC direct configuration reaches the largest cascade depth (peak \(T \approx 3.5\) rounds), indicating that additional PCC edges stretch the failure process over more redistribution--trip rounds without preventing the eventual outcome. Baseline and random configurations remain closer to one-shot PCC isolation.}
     \label{fig:cascade-depth}
 \end{figure}
 
-A control experiment on 100 uniform (no-PCC) networks (\cref{fig:control}) recovers the smooth sigmoid cascade curve reported by Smith et al.~\cite{Ref10}, confirming that the step-like pattern is a physical consequence of PCC structure. The cascade depth analysis (\cref{fig:cascade-depth}) shows that \(m = 8\) reaches the largest recursion depth, meaning additional PCC edges stretch the failure process over more rounds without preventing the outcome.
+The mechanism is consistent across all diagnostics: PCC edges carry the highest currents and trip first; power redistributes to remaining PCC edges, triggering further overloads; repeated rounds eventually isolate the PCC. Final survivability depends on whether internal subnetworks can self-supply after PCC isolation, not on whether PCC degree was increased.
 
-The mechanism is consistent across all diagnostics: PCC edges carry the highest currents and trip first; power redistributes to remaining PCC edges, triggering further overloads; repeated rounds eventually isolate the PCC. Final survivability depends on whether internal subnetworks can self-supply after PCC isolation, not on whether PCC degree was increased. This produces the stability--resilience paradox: the same intervention that improves swing stability is neutral or harmful for cascade resilience. The two failure modes respond to PCC connectivity through mechanistically independent channels that cannot be simultaneously optimised by a single static topology change.
-
-\section{Sensitivity Analysis: Damping Parameter Sweep}
+\FloatBarrier
+\subsection{Sensitivity Analysis: Damping Parameter Sweep}
 \label{sec:sensitivity}
 
 The preceding sections established the topology intervention and identified its contrasting effects on synchronisation and cascade resilience. All results thus far used a damping coefficient \(\gamma = 1\). Since increasing renewable penetration reduces effective system inertia (equivalent to lower \(\gamma\)), it is important to verify that the topology optimisation benefit is not an artefact of a particular damping regime.
 
-A sweep over \(\gamma \in [0.1, 5.0]\) (16 values) was conducted with 50 ensemble realisations at a Wednesday noon time slice, comparing the baseline (\(m = 0\)) against PCC direct with \(m = 4\). Because the sweep uses a single noon snapshot rather than the seven-day noon average employed in \cref{ch:topology}, absolute \(\kappa_c\) values are approximately 12\% higher than the weekly averages reported earlier; the relative comparisons between \(m = 0\) and \(m = 4\) presented in the preceding sections are unaffected.
+A sweep over \(\gamma \in [0.1, 5.0]\) (16 values) was conducted with 50 ensemble realisations at a Wednesday noon time slice, comparing the baseline (\(m = 0\)) against PCC direct with \(m = 4\). Because the sweep uses a single noon snapshot rather than the seven-day noon average employed in \cref{sec:topology}, absolute \(\kappa_c\) values are approximately 12\% higher than the weekly averages reported earlier; the relative comparisons between \(m = 0\) and \(m = 4\) presented in the preceding sections are unaffected.
 
 \begin{table}[ht]
     \centering
@@ -640,34 +697,30 @@ A sweep over \(\gamma \in [0.1, 5.0]\) (16 values) was conducted with 50 ensembl
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.9\textwidth]{fig_sq5_damping_sweep.png}
+    \includegraphics[width=0.75\textwidth]{fig_sq5_damping_sweep.png}
     \caption{Damping sensitivity: \(\kappa_c\) at noon as a function of \(\gamma\) for baseline (\(m = 0\), upper curve) and PCC direct (\(m = 4\), lower curve). Both curves decrease monotonically with \(\gamma\), and the vertical gap between them narrows in absolute terms while the relative reduction remains constant at approximately 50\%. Error bands show one standard deviation across 50 ensemble realisations.}
     \label{fig:damping-sweep}
 \end{figure}
 
 Three findings emerge from \cref{tab:damping-sweep} and \cref{fig:damping-sweep}. First, \(\kappa_c\) decreases monotonically with \(\gamma\) for both the baseline and augmented topologies, as expected from the stabilising role of the damping term in \cref{eq:swing}. Second, the relative reduction in \(\kappa_c\) achieved by the \(m = 4\) intervention remains within 49--50\% across all values of \(\gamma\), indicating that the topology benefit is effectively damping-invariant. Third, the absolute improvement \(\Delta\kappa_c\) decreases from 3.79 at \(\gamma = 0.1\) to 2.96 at \(\gamma = 5.0\), meaning the intervention provides the greatest absolute benefit precisely where it is most needed---in low-inertia systems characteristic of high-renewable penetration.
 
-These results confirm that the topology optimisation findings of \cref{ch:topology} are robust to damping variation and are not contingent on the particular value \(\gamma = 1\).
+These results confirm that the topology optimisation findings of \cref{sec:topology} are robust to damping variation and are not contingent on the particular value \(\gamma = 1\).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   Chapter 6: Discussion & Conclusion   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Discussion \& Conclusion}
-\label{ch:discussion}
+\section{Discussion \& Conclusion}
+\label{sec:discussion}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   6.1 Synthesis   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Synthesis}
+\subsection{Synthesis}
 \label{sec:synthesis}
 
-The analysis presented in this report follows a single causal chain. Static power heterogeneity was shown to have negligible effect on synchronisation thresholds (\cref{sec:static-effects}): a full sweep of magnitude dispersion produced only 4\% variation, ruling out static variance as the primary instability driver. Temporal dynamics, by contrast, proved decisive: measured consumption and PV generation data revealed a 22.6-fold peak-to-valley ratio in critical coupling over the daily cycle (\cref{sec:temporal-dynamics}), with the PCC identified as the structural root cause of the noon vulnerability peak (\cref{sec:pcc-bottleneck}).
-
-Targeted topology intervention proved highly effective for synchronisation stability. All three directed edge-addition strategies reduced the noon critical coupling by 50--83\% depending on budget, converging to a single inverse-degree scaling law \(\kappa_c / P_{\max} \approx 25.7 / (4 + m)\) consistent with the analytical lower bound of \cref{thm:lower-bound} (\cref{sec:budget-scaling}). However, the same intervention failed to improve---and in some configurations worsened---cascade failure resilience (\cref{sec:cascade}). The damping sensitivity analysis confirmed that the synchronisation benefit is robust across the full range \(\gamma \in [0.1, 5.0]\) (\cref{sec:sensitivity}).
-
-\Cref{tab:findings-summary} summarises the key findings and their roles in the argument.
+The findings form a coherent causal chain, summarised in \cref{tab:findings-summary}. Static power heterogeneity proved negligible as an instability driver, while measured diurnal data revealed a 22.6-fold day--night swing in critical coupling whose root cause was unambiguously localised to the PCC. Targeted degree augmentation resolved that vulnerability under swing-equation dynamics, following an inverse-degree scaling law analytically grounded in \cref{thm:lower-bound}, yet the same structural change offered no benefit---and often caused harm---under cascade failure, a mechanistically independent failure mode whose robustness to damping variation was confirmed across \(\gamma \in [0.1, 5.0]\).
 
 \begin{table}[ht]
     \centering
@@ -685,7 +738,7 @@ Targeted topology intervention proved highly effective for synchronisation stabi
         \midrule
         Ch.~4 (Cascade) & Same intervention degrades cascade resilience & Cross-validates under second failure mode; reveals paradox \\
         \midrule
-        Ch.~5 (Sensitivity) & Relative reduction \(\sim\)50\% across all \(\gamma\) & Confirms robustness to damping variation \\
+        Ch.~4 (Sensitivity) & Relative reduction \(\sim\)50\% across all \(\gamma\) & Confirms robustness to damping variation \\
         \bottomrule
     \end{tabularx}
 \end{table}
@@ -694,7 +747,7 @@ Targeted topology intervention proved highly effective for synchronisation stabi
 %   6.2 The Stability-Resilience Paradox   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{The Stability--Resilience Paradox}
+\subsection{The Stability--Resilience Paradox}
 \label{sec:paradox}
 
 The contrast between the synchronisation and cascade results constitutes the central paradox of this work. \Cref{tab:paradox} summarises the opposing effects.
@@ -714,36 +767,20 @@ The contrast between the synchronisation and cascade results constitutes the cen
     \end{tabularx}
 \end{table}
 
-This result is related to, but distinct from, the classical Braess paradox, which has been demonstrated in oscillator networks~\cite{Ref13} and analysed through linear stability theory~\cite{Ref14}. In power-grid and oscillator settings, adding links can reduce stability within a single dynamical model due to counter-intuitive flow redistribution. Crucially, the classical Braess paradox and its power-grid analogues operate \emph{within} a single dynamical model; the intervention degrades the same objective it was meant to improve. The finding reported here is a \emph{cross-model} Braess-like effect: edge addition is beneficial under swing-equation synchronisation yet neutral or harmful under DC cascade dynamics. The distinction matters because classical Braess effects compare pre- and post-expansion within one objective landscape, whereas here the same structural intervention crosses objective landscapes and reverses sign between them. Topological gains in one security metric cannot be treated as transferable evidence for another.
+This outcome echoes the classic Braess paradox, which has been identified in oscillator networks~\cite{Ref13} and characterised through linear stability analysis~\cite{Ref14}. There, adding a link to a network can reduce stability within the same dynamical model---the intervention undermines the very objective it targets. What we observe here is structurally similar but cuts across models rather than within one: PCC edge addition is beneficial under swing-equation synchronisation and neutral or harmful under DC cascade dynamics. In the classical Braess setting, the comparison is between pre- and post-expansion states within a single objective landscape. Here, the same topological change crosses objective landscapes entirely, reversing sign between them. A security gain demonstrated under one failure model therefore carries no guarantee of transfer to another.
 
-The planning implication is direct: single-objective topology optimisation can create false confidence. A design that appears robust in synchronisation terms may remain fragile to overload-triggered cascade failures. Practical resilience assessment must therefore enforce dual constraints on synchronisation thresholds and cascade outcomes, rather than optimising either in isolation.
+For grid planners, the implication is uncomfortable but clear. A topology that looks robust under synchronisation analysis may be quietly fragile to overload-triggered cascades. Evaluating these two failure modes separately---and optimising for only one---risks a false sense of security. Resilience assessment should treat synchronisation thresholds and cascade outcomes as joint constraints, not competing alternatives.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   6.3 Limitations   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Limitations}
+\subsection{Limitations and Future Directions}
 \label{sec:limitations}
 
-Several boundary conditions constrain the generality of these findings. The model uses homogeneous coupling and damping without full AC reactive-power detail. Most experiments are conducted at \(n = 50\), so statistical robustness at larger scales remains to be validated. The data focus on summer profiles, leaving seasonal and weather variability for future investigation. The bisection procedure uses five steps per evaluation, which is sufficient for qualitative trends but limits fine-grained parameter estimates. Finally, the cascade model employs a linearised DC approximation that omits reactive power redistribution and voltage-dependent load effects present in real distribution networks.
+Several modelling choices bound the scope of these conclusions. Homogeneous coupling, uniform damping, and a linearised DC cascade approximation are adopted throughout; a full AC treatment with heterogeneous line impedances would introduce additional degrees of freedom and may alter the quantitative balance between failure modes. The analysis is restricted to \(n = 50\) nodes under a single summer week of data, leaving open questions about scaling to larger networks and about seasonal variability, particularly under low-irradiance winter conditions.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%   6.4 Engineering Implications   %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Engineering Implications}
-\label{sec:engineering}
-
-From a planning perspective, static wiring optimisation alone is insufficient for full-spectrum resilience. Directed PCC edge additions are effective for swing stability but must be co-evaluated with cascade risk. More robust practice should combine topology design with dynamic protection and fault-isolation mechanisms such as dynamic line rating, controlled islanding, and layered protection settings. PCC design should therefore target both connectivity and fast isolation capability, rather than connectivity alone. From a practical standpoint, each added edge represents a physical cable installation between two nodes; a budget of $m = 4$ is a modest intervention well within the scope of typical low-voltage network reinforcement projects.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%   6.5 Future Work   %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Future Work}
-\label{sec:future-work}
-
-Several natural extensions follow from this work. Multi-PCC and multi-microgrid coupling would allow the study of bottleneck migration across interconnected communities. Joint optimisation of storage dispatch and topology under multi-objective criteria could address the stability--resilience trade-off directly. Stochastic weather and load scenarios would test robustness beyond the summer-week case studied here. Finally, replication on larger networks with explicit engineering sensitivity envelopes would establish the practical relevance of the scaling laws identified in this report.
+For practitioners, PCC degree augmentation is a viable and cost-effective tool for reducing synchronisation vulnerability, but it must be paired with complementary cascade-mitigation mechanisms---dynamic line rating, controlled islanding, and layered protection settings---rather than treated as a self-sufficient intervention. Future work should examine multi-PCC configurations and interconnected microgrid clusters, pursue joint optimisation of storage dispatch and network topology under dual synchronisation--cascade objectives, and test the inverse-degree scaling law against stochastic weather and load ensembles at distribution-planning scales.
 
 %%%        %%%%%%%%        %%%
 %%%%% %%%%%        %%%%% %%%%%
