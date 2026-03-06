@@ -30,10 +30,10 @@ M_COLORS = {
     "m=4_random":      "#1f77b4",   # tab blue
 }
 LABELS = {
-    "m=0_pcc_direct": "m=0 (baseline)",
-    "m=4_pcc_direct": "m=4 (PCC direct)",
-    "m=8_pcc_direct": "m=8 (PCC direct)",
-    "m=4_random": "m=4 (random)",
+    "m=0_pcc_direct": "m=0 (Baseline)",
+    "m=4_pcc_direct": "m=4 (PCC Direct)",
+    "m=8_pcc_direct": "m=8 (PCC Direct)",
+    "m=4_random": "m=4 (Random)",
 }
 
 TIMESTEP_ORDER = ["00:00", "06:00", "09:00", "12:00", "18:00"]
@@ -48,7 +48,7 @@ def plot_sq3_1():
 
     df = pd.read_csv(sweep_path)
 
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8), sharex=True, sharey=True)
+    fig, axes = plt.subplots(2, 3, figsize=(14, 9), sharex=True, sharey=True)
     axes_flat = axes.flatten()
 
     for panel_idx, t_label in enumerate(TIMESTEP_ORDER):
@@ -64,27 +64,29 @@ def plot_sq3_1():
             agg = group.groupby("alpha_over_alpha_star")["S"].agg(["mean", "std"]).reset_index()
 
             ax.plot(agg["alpha_over_alpha_star"], agg["mean"],
-                    '-o', color=color, label=label, markersize=2, linewidth=1.5)
+                    '-o', color=color, label=label, markersize=3, linewidth=1.5)
             ax.fill_between(agg["alpha_over_alpha_star"],
                             agg["mean"] - agg["std"],
                             agg["mean"] + agg["std"],
                             alpha=0.15, color=color)
 
-        ax.set_title(f"t = {t_label}", fontsize=12)
+        ax.set_title(f"t = {t_label}", fontsize=18)
         ax.set_ylim(-0.05, 1.05)
         ax.grid(True, alpha=0.3)
         ax.axhline(0.5, color='gray', linestyle='--', alpha=0.5)
-        if panel_idx == 0:
-            ax.legend(fontsize=8, loc='upper left')
+        ax.tick_params(labelsize=16)
 
-    # Hide 6th panel
-    axes_flat[5].set_visible(False)
+    # Use 6th panel for legend
+    ax_leg = axes_flat[5]
+    ax_leg.axis('off')
+    handles, labels = axes_flat[0].get_legend_handles_labels()
+    ax_leg.legend(handles, labels, fontsize=16, loc='center', frameon=False)
 
     # Axis labels on edge panels only
     for ax in axes[:, 0]:
-        ax.set_ylabel(r"$S$", fontsize=11)
+        ax.set_ylabel(r"$S$", fontsize=18)
     for ax in axes[1, :]:
-        ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=12)
+        ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=18)
 
     fig.tight_layout()
 
@@ -109,7 +111,7 @@ def plot_sq3_2():
     n_rows = len(slice_fractions)
     n_cols = len(timesteps_selected)
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(10, 12), sharey='row')
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 12), sharey='row')
 
     # Config ordering for consistent bar positions
     config_keys_ordered = ["m=0_pcc_direct", "m=4_pcc_direct", "m=8_pcc_direct", "m=4_random"]
@@ -158,22 +160,23 @@ def plot_sq3_2():
                    color="#1f77b4", alpha=0.8)
 
             ax.set_xticks(x)
-            ax.set_xticklabels(configs, rotation=45, ha='right', fontsize=8)
+            ax.set_xticklabels(configs, rotation=45, ha='right', fontsize=13)
 
             # Row label on leftmost column
+            ax.tick_params(labelsize=13)
             if col_idx == 0:
-                ax.set_ylabel(f"Surviving edges (mean)\n"
-                              r"$\alpha$" + f" = {target_abs:.2f}", fontsize=10)
+                ax.set_ylabel(f"Surviving edges\n"
+                              r"$\alpha$" + f" = {target_abs:.2f}", fontsize=14)
 
             # Column title on top row
             if row_idx == 0:
-                ax.set_title(f"t = {t_label}", fontsize=11)
+                ax.set_title(f"t = {t_label}", fontsize=16)
 
             # Legend in top-left subplot only
             if row_idx == 0 and col_idx == 0:
-                ax.legend(fontsize=9, loc='upper left')
+                ax.legend(fontsize=15, loc='upper left')
 
-    fig.tight_layout()
+    fig.tight_layout(h_pad=3, w_pad=3)
 
     fig_path = os.path.join(FIGURES_DIR, "fig_sq3_2_edge_survival.png")
     fig.savefig(fig_path, dpi=200, bbox_inches='tight')
@@ -194,7 +197,7 @@ def plot_sq3_3():
         print(f"  SKIP SQ3-3: Option D files not found")
         return
 
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5.5))
 
     # Panel A: Option D sigmoid (mean ± std across 100 instances)
     ax = axes[0]
@@ -220,10 +223,10 @@ def plot_sq3_3():
                              alpha=0.2, color="#d62728")
 
     ax.axhline(0.5, color='gray', linestyle='--', alpha=0.5)
-    ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=11)
-    ax.set_ylabel(r"$S$", fontsize=11)
-    ax.set_title("(a) Sigmoid Comparison", fontsize=12)
-    ax.legend(fontsize=9)
+    ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=18)
+    ax.set_ylabel(r"$S$", fontsize=18)
+    ax.set_title("(a) Sigmoid Comparison", fontsize=18)
+    ax.legend(fontsize=14, loc='lower right')
     ax.set_ylim(-0.05, 1.05)
     ax.grid(True, alpha=0.3)
 
@@ -238,10 +241,10 @@ def plot_sq3_3():
                    label=f"mean={np.mean(rhos):.3f}")
         ax.axvline(np.median(rhos), color='blue', linestyle='--',
                    label=f"median={np.median(rhos):.3f}")
-    ax.set_xlabel(r"$\rho = \alpha_c / \alpha^*$", fontsize=11)
-    ax.set_ylabel("Count", fontsize=11)
-    ax.set_title(r"(b) $\rho$ Distribution (Option D)", fontsize=12)
-    ax.legend(fontsize=9)
+    ax.set_xlabel(r"$\rho = \alpha_c / \alpha^*$", fontsize=18)
+    ax.set_ylabel("Count", fontsize=18)
+    ax.set_title(r"(b) $\rho$ Distribution (Option D)", fontsize=18)
+    ax.legend(fontsize=15)
     ax.grid(True, alpha=0.3)
 
     # Panel C: convergence summary
@@ -251,11 +254,13 @@ def plot_sq3_3():
     ax.bar(["Converged", "Not converged"],
            [n_conv, n_total - n_conv],
            color=["#2ca02c", "#d62728"], alpha=0.8, edgecolor="black")
-    ax.set_ylabel("Count", fontsize=11)
-    ax.set_title(f"(c) Bisection Convergence ({100*n_conv/n_total:.0f}%)", fontsize=12)
+    ax.set_ylabel("Count", fontsize=18)
+    ax.set_title(f"(c) Bisection Convergence ({100*n_conv/n_total:.0f}%)", fontsize=18)
     ax.grid(True, alpha=0.3, axis='y')
 
-    fig.tight_layout()
+    for ax in axes:
+        ax.tick_params(labelsize=16)
+    fig.tight_layout(w_pad=4)
 
     fig_path = os.path.join(FIGURES_DIR, "fig_sq3_3_option_d.png")
     fig.savefig(fig_path, dpi=200, bbox_inches='tight')
@@ -278,6 +283,7 @@ def plot_sq3_4():
         return
 
     fig, ax = plt.subplots(figsize=(8, 5))
+    ax.tick_params(labelsize=15)
 
     for (m, strategy), group in df_noon.groupby(["m", "strategy"]):
         config_key = f"m={m}_{strategy}"
@@ -292,9 +298,9 @@ def plot_sq3_4():
                          agg["mean"] + agg["std"],
                          alpha=0.15, color=color)
 
-    ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=12)
-    ax.set_ylabel(r"Cascade depth $T$", fontsize=12)
-    ax.legend(fontsize=10)
+    ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=16)
+    ax.set_ylabel(r"Cascade depth $T$", fontsize=16)
+    ax.legend(fontsize=15)
     ax.grid(True, alpha=0.3)
 
     fig_path = os.path.join(FIGURES_DIR, "fig_sq3_4_cascade_depth.png")

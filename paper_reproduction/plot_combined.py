@@ -38,11 +38,12 @@ def plot_combined(simplex_file=None, crosssec_file=None, output_file=None, show=
 
     # Set up matplotlib
     plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.size'] = 10
+    plt.rcParams['font.size'] = 14
     plt.rcParams['mathtext.fontset'] = 'cm'
 
     # Create figure with two subplots
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 3), dpi=config.DPI)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.5), dpi=config.DPI,
+                                       gridspec_kw={'width_ratios': [1.2, 1]})
 
     # ===== FIG 1C (left) =====
     print(f"Loading simplex data from {simplex_file}")
@@ -73,28 +74,28 @@ def plot_combined(simplex_file=None, crosssec_file=None, output_file=None, show=
     x_left = y_line / h * 0.5
     x_right = 1 - y_line / h * 0.5
     ax1.plot([x_left, x_right], [y_line, y_line], 'w--', linewidth=1.5, dashes=(5, 3))
-    ax1.text(x_left + 0.02, y_line + 0.02, '(i)', color='white', fontsize=9)
+    ax1.text(x_left + 0.02, y_line + 0.02, '(i)', color='white', fontsize=13)
 
     # Colorbar - use ScalarMappable for continuous gradient
     sm = ScalarMappable(cmap='viridis', norm=norm)
     sm.set_array([])
     cbar = fig.colorbar(sm, ax=ax1, shrink=0.7, aspect=15, pad=0.02)
     cbar.outline.set_visible(False)  # Remove colorbar border
-    cbar.set_label(r'$\overline{\kappa}_c$', fontsize=11, rotation=0, labelpad=15, y=1.05)
+    cbar.set_label(r'$\overline{\kappa}_c$', fontsize=14, rotation=0, labelpad=15, y=1.05)
     cbar.set_ticks([round(vmin, 2), round(vmax, 2)])  # Use actual data range
-    cbar.ax.tick_params(labelsize=9)
+    cbar.ax.tick_params(labelsize=13)
 
     # Labels
-    ax1.text(-0.08, h/2, r'Generators $\rightarrow$', fontsize=10,
+    ax1.text(-0.12, h/2, r'Generators $\rightarrow$', fontsize=14,
              rotation=60, ha='center', va='center', rotation_mode='anchor')
-    ax1.text(1.08, h/2, r'$\leftarrow$ Passive', fontsize=10,
+    ax1.text(1.12, h/2, r'$\leftarrow$ Passive', fontsize=14,
              rotation=-60, ha='center', va='center', rotation_mode='anchor')
-    ax1.text(0.5, -0.08, r'Consumers $\rightarrow$', fontsize=10, ha='center', va='top')
+    ax1.text(0.5, -0.12, r'Consumers $\rightarrow$', fontsize=14, ha='center', va='top')
 
-    ax1.text(-0.05, h + 0.08, 'C', fontsize=14, fontweight='bold')
+    ax1.text(-0.05, h + 0.08, 'C', fontsize=16, fontweight='bold')
 
-    ax1.set_xlim(-0.15, 1.2)
-    ax1.set_ylim(-0.15, h + 0.15)
+    ax1.set_xlim(-0.2, 1.25)
+    ax1.set_ylim(-0.2, h + 0.18)
     ax1.set_aspect('equal')
     ax1.axis('off')
 
@@ -123,10 +124,10 @@ def plot_combined(simplex_file=None, crosssec_file=None, output_file=None, show=
         ax2.plot(n_minus_arr, mean, color=color, linewidth=2, label=f'$q = {q}$')
 
     # Use paper's Y-axis range: 0 to 0.5, with 0.1 as intermediate tick
-    ax2.text(17, 0.47, '(i)', fontsize=10, ha='center', va='top', color='#404040')
+    ax2.text(17, 0.47, '(i)', fontsize=13, ha='center', va='top', color='#404040')
 
-    ax2.set_xlabel('Consumers', fontsize=11)
-    ax2.set_ylabel(r'$\overline{\kappa}_c$', fontsize=11, rotation=0, labelpad=15)
+    ax2.set_xlabel('Consumers', fontsize=14)
+    ax2.set_ylabel(r'$\overline{\kappa}_c$', fontsize=14, rotation=0, labelpad=15)
     ax2.set_xlim(1, 34)
     ax2.set_ylim(0, 0.5)
     ax2.set_xticks([1, 34])
@@ -135,9 +136,9 @@ def plot_combined(simplex_file=None, crosssec_file=None, output_file=None, show=
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
 
-    ax2.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), frameon=False, fontsize=9, handlelength=1.5)
+    ax2.legend(loc='center left', bbox_to_anchor=(1.02, 0.5), frameon=False, fontsize=13, handlelength=1.5)
 
-    ax2.text(-0.15, 1.05, 'D', fontsize=14, fontweight='bold',
+    ax2.text(-0.15, 1.05, 'D', fontsize=16, fontweight='bold',
              ha='left', va='bottom', transform=ax2.transAxes)
 
     # Save
