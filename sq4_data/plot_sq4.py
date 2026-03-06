@@ -126,7 +126,7 @@ def plot_4b2_strategy_timeseries(results_dir: str, m: int, out_dir: str):
     colors = [STRATEGY_COLORS[s] for s in strategies]
     labels = ["Baseline", "Random", "Max Power", "Score", "PCC Direct"]
 
-    fig, ax = plt.subplots(figsize=(10, 4))
+    fig, ax = plt.subplots(figsize=(14, 5))
     ax.tick_params(labelsize=18)
     for strat, color, label in zip(strategies, colors, labels):
         csv_path = os.path.join(results_dir, f"kappa_ts_{strat}_m{m}.csv")
@@ -145,7 +145,7 @@ def plot_4b2_strategy_timeseries(results_dir: str, m: int, out_dir: str):
 
     ax.set_xlabel("Time (hours)", fontsize=20)
     ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$", fontsize=20)
-    ax.legend(loc="upper left", fontsize=18)
+    ax.legend(loc="upper left", fontsize=16, ncol=3)
     ax.grid(True, alpha=0.3)
 
     # Day markers

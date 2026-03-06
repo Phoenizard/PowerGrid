@@ -48,7 +48,7 @@ def plot_sq3_1():
 
     df = pd.read_csv(sweep_path)
 
-    fig, axes = plt.subplots(2, 3, figsize=(8, 6), sharex=True, sharey=True)
+    fig, axes = plt.subplots(2, 3, figsize=(14, 9), sharex=True, sharey=True)
     axes_flat = axes.flatten()
 
     for panel_idx, t_label in enumerate(TIMESTEP_ORDER):
@@ -75,11 +75,12 @@ def plot_sq3_1():
         ax.grid(True, alpha=0.3)
         ax.axhline(0.5, color='gray', linestyle='--', alpha=0.5)
         ax.tick_params(labelsize=16)
-        if panel_idx == 0:
-            ax.legend(fontsize=14, loc='upper left')
 
-    # Hide 6th panel
-    axes_flat[5].set_visible(False)
+    # Use 6th panel for legend
+    ax_leg = axes_flat[5]
+    ax_leg.axis('off')
+    handles, labels = axes_flat[0].get_legend_handles_labels()
+    ax_leg.legend(handles, labels, fontsize=16, loc='center', frameon=False)
 
     # Axis labels on edge panels only
     for ax in axes[:, 0]:
@@ -110,7 +111,7 @@ def plot_sq3_2():
     n_rows = len(slice_fractions)
     n_cols = len(timesteps_selected)
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(8, 10), sharey='row')
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, 12), sharey='row')
 
     # Config ordering for consistent bar positions
     config_keys_ordered = ["m=0_pcc_direct", "m=4_pcc_direct", "m=8_pcc_direct", "m=4_random"]
@@ -164,8 +165,8 @@ def plot_sq3_2():
             # Row label on leftmost column
             ax.tick_params(labelsize=13)
             if col_idx == 0:
-                ax.set_ylabel(f"Surviving edges (mean)\n"
-                              r"$\alpha$" + f" = {target_abs:.2f}", fontsize=16)
+                ax.set_ylabel(f"Surviving edges\n"
+                              r"$\alpha$" + f" = {target_abs:.2f}", fontsize=14)
 
             # Column title on top row
             if row_idx == 0:
@@ -175,7 +176,7 @@ def plot_sq3_2():
             if row_idx == 0 and col_idx == 0:
                 ax.legend(fontsize=15, loc='upper left')
 
-    fig.tight_layout()
+    fig.tight_layout(h_pad=3, w_pad=3)
 
     fig_path = os.path.join(FIGURES_DIR, "fig_sq3_2_edge_survival.png")
     fig.savefig(fig_path, dpi=200, bbox_inches='tight')
@@ -196,7 +197,7 @@ def plot_sq3_3():
         print(f"  SKIP SQ3-3: Option D files not found")
         return
 
-    fig, axes = plt.subplots(1, 3, figsize=(10, 4))
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5.5))
 
     # Panel A: Option D sigmoid (mean ± std across 100 instances)
     ax = axes[0]
@@ -225,7 +226,7 @@ def plot_sq3_3():
     ax.set_xlabel(r"$\alpha / \alpha^*$", fontsize=18)
     ax.set_ylabel(r"$S$", fontsize=18)
     ax.set_title("(a) Sigmoid Comparison", fontsize=18)
-    ax.legend(fontsize=15)
+    ax.legend(fontsize=14, loc='lower right')
     ax.set_ylim(-0.05, 1.05)
     ax.grid(True, alpha=0.3)
 
@@ -259,7 +260,7 @@ def plot_sq3_3():
 
     for ax in axes:
         ax.tick_params(labelsize=16)
-    fig.tight_layout()
+    fig.tight_layout(w_pad=4)
 
     fig_path = os.path.join(FIGURES_DIR, "fig_sq3_3_option_d.png")
     fig.savefig(fig_path, dpi=200, bbox_inches='tight')

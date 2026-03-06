@@ -42,7 +42,7 @@ def plot_combined(simplex_file=None, crosssec_file=None, output_file=None, show=
     plt.rcParams['mathtext.fontset'] = 'cm'
 
     # Create figure with two subplots
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7, 3), dpi=config.DPI,
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.5), dpi=config.DPI,
                                        gridspec_kw={'width_ratios': [1.2, 1]})
 
     # ===== FIG 1C (left) =====
@@ -86,16 +86,16 @@ def plot_combined(simplex_file=None, crosssec_file=None, output_file=None, show=
     cbar.ax.tick_params(labelsize=13)
 
     # Labels
-    ax1.text(-0.08, h/2, r'Generators $\rightarrow$', fontsize=14,
+    ax1.text(-0.12, h/2, r'Generators $\rightarrow$', fontsize=14,
              rotation=60, ha='center', va='center', rotation_mode='anchor')
-    ax1.text(1.08, h/2, r'$\leftarrow$ Passive', fontsize=14,
+    ax1.text(1.12, h/2, r'$\leftarrow$ Passive', fontsize=14,
              rotation=-60, ha='center', va='center', rotation_mode='anchor')
-    ax1.text(0.5, -0.08, r'Consumers $\rightarrow$', fontsize=14, ha='center', va='top')
+    ax1.text(0.5, -0.12, r'Consumers $\rightarrow$', fontsize=14, ha='center', va='top')
 
     ax1.text(-0.05, h + 0.08, 'C', fontsize=16, fontweight='bold')
 
-    ax1.set_xlim(-0.15, 1.2)
-    ax1.set_ylim(-0.15, h + 0.15)
+    ax1.set_xlim(-0.2, 1.25)
+    ax1.set_ylim(-0.2, h + 0.18)
     ax1.set_aspect('equal')
     ax1.axis('off')
 
