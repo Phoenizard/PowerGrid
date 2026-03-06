@@ -102,8 +102,8 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
             if day == 0:  # Only label D1 midnight
                 tax.annotate(
                     "Night 00:00", points[t_idx],
-                    fontsize=7, ha="left", va="bottom",
-                    xytext=(5, 5), textcoords="offset points",
+                    fontsize=12, ha="left", va="bottom",
+                    xytext=(10, 8), textcoords="offset points",
                 )
         elif h % 24.0 == 12.0:  # midday
             day = int(h // 24)
@@ -113,16 +113,16 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
             if day == 0:  # Only label D1 midday
                 tax.annotate(
                     "Day 12:00", points[t_idx],
-                    fontsize=7, ha="left", va="bottom",
-                    xytext=(5, 5), textcoords="offset points",
+                    fontsize=12, ha="left", va="bottom",
+                    xytext=(10, 8), textcoords="offset points",
                 )
 
     # Labels
-    tax.left_axis_label("Generators ($\\eta^+$)", fontsize=11, offset=0.16)
-    tax.right_axis_label("Consumers ($\\eta^-$)", fontsize=11, offset=0.16)
-    tax.bottom_axis_label("Passive ($\\eta_p$)", fontsize=11, offset=0.06)
+    tax.left_axis_label("Generators ($\\eta^+$)", fontsize=14, offset=0.16)
+    tax.right_axis_label("Consumers ($\\eta^-$)", fontsize=14, offset=0.16)
+    tax.bottom_axis_label("Passive ($\\eta_p$)", fontsize=14, offset=0.06)
 
-    tax.ticks(axis="lbr", linewidth=0.5, multiple=0.2, fontsize=8, offset=0.02,
+    tax.ticks(axis="lbr", linewidth=0.5, multiple=0.2, fontsize=12, offset=0.02,
               tick_formats="%.1f")
     tax.clear_matplotlib_ticks()
     tax.get_axes().set_aspect("equal")
@@ -134,7 +134,7 @@ def plot_trajectory(results_dir: str, output_dir: str, season: str):
     )
     sm.set_array([])
     cbar = plt.colorbar(sm, ax=tax.get_axes(), fraction=0.03, pad=0.08)
-    cbar.set_label("Hours from Monday 00:00", fontsize=10)
+    cbar.set_label("Hours from Monday 00:00", fontsize=13)
 
     fig_path = os.path.join(output_dir, f"fig3A_trajectory_{season}.png")
     plt.savefig(fig_path, dpi=DPI, bbox_inches="tight")
@@ -162,7 +162,7 @@ def plot_kappa_timeseries(results_dir: str, output_dir: str, season: str):
     # x-axis: continuous time in days
     x = days + hours_in_day / 24.0
 
-    fig, ax = plt.subplots(figsize=(12, 3.5))
+    fig, ax = plt.subplots(figsize=(10, 3.5))
 
     ax.plot(x, kc_mean, "-", color="#1f77b4", linewidth=1.5, label="$\\bar{\\kappa}_c / P_{\\max}$")
     ax.fill_between(
@@ -174,19 +174,20 @@ def plot_kappa_timeseries(results_dir: str, output_dir: str, season: str):
         label="$\\pm 1$ SD",
     )
 
-    ax.set_xlabel("Day of Week", fontsize=12)
-    ax.set_ylabel("$\\bar{\\kappa}_c / P_{\\max}$", fontsize=12)
+    ax.set_xlabel("Day of Week", fontsize=18)
+    ax.set_ylabel("$\\bar{\\kappa}_c / P_{\\max}$", fontsize=18)
 
     # x ticks at day boundaries
     ax.set_xticks(range(N_DAYS := 7))
-    ax.set_xticklabels([f"Day {d+1}" for d in range(N_DAYS)], fontsize=10)
+    ax.set_xticklabels([f"Day {d+1}" for d in range(N_DAYS)], fontsize=16)
     ax.set_xlim(-0.1, 6.95)
+    ax.tick_params(axis='y', labelsize=16)
 
     # Add vertical dashed lines at day boundaries
     for d in range(1, N_DAYS):
         ax.axvline(d, color="gray", linestyle="--", linewidth=0.5, alpha=0.5)
 
-    ax.legend(fontsize=10, loc="upper right")
+    ax.legend(fontsize=16, loc="upper right")
     ax.grid(True, alpha=0.3)
 
     fig_path = os.path.join(output_dir, f"fig3B_kappa_timeseries_{season}.png")

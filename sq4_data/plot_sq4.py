@@ -41,6 +41,13 @@ M_COLORS = {
     "m=8_pcc_direct":  "#8c564b",   # tab brown
     "m=4_random":      "#1f77b4",   # tab blue
 }
+STRATEGY_DISPLAY = {
+    "baseline": "Baseline",
+    "random": "Random",
+    "max_power": "Max Power",
+    "score": "Score",
+    "pcc_direct": "PCC Direct",
+}
 
 
 def _setup_style():
@@ -48,12 +55,12 @@ def _setup_style():
     plt.rcParams.update({
         "figure.figsize": (8, 5),
         "figure.dpi": 150,
-        "font.size": 12,
-        "axes.labelsize": 13,
-        "axes.titlesize": 14,
-        "legend.fontsize": 10,
-        "xtick.labelsize": 11,
-        "ytick.labelsize": 11,
+        "font.size": 15,
+        "axes.labelsize": 16,
+        "axes.titlesize": 16,
+        "legend.fontsize": 15,
+        "xtick.labelsize": 15,
+        "ytick.labelsize": 15,
         "lines.linewidth": 1.5,
         "lines.markersize": 6,
     })
@@ -104,7 +111,7 @@ def plot_4b1_strategy_bars(summary_path: str, out_dir: str):
     bars = ax.bar(x, df["kc_noon_mean"], yerr=df["kc_noon_std"],
                   capsize=4, color=colors[:len(df)], alpha=0.8)
     ax.set_xticks(x)
-    ax.set_xticklabels(df["strategy"], rotation=30, ha="right")
+    ax.set_xticklabels([STRATEGY_DISPLAY.get(s, s) for s in df["strategy"]], rotation=30, ha="right")
     ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$ (noon)")
     ax.grid(True, alpha=0.3, axis="y")
     out = os.path.join(out_dir, "fig_4b1_strategy_bars.png")
@@ -117,9 +124,10 @@ def plot_4b2_strategy_timeseries(results_dir: str, m: int, out_dir: str):
     """Fig 4b2: full 7-day κ_c(t) overlaid for all strategies."""
     strategies = ["baseline", "random", "max_power", "score", "pcc_direct"]
     colors = [STRATEGY_COLORS[s] for s in strategies]
-    labels = ["Baseline", "Random", "Max power", "Score", "PCC direct"]
+    labels = ["Baseline", "Random", "Max Power", "Score", "PCC Direct"]
 
-    fig, ax = plt.subplots(figsize=(14, 4))
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.tick_params(labelsize=18)
     for strat, color, label in zip(strategies, colors, labels):
         csv_path = os.path.join(results_dir, f"kappa_ts_{strat}_m{m}.csv")
         if not os.path.exists(csv_path):
@@ -135,9 +143,9 @@ def plot_4b2_strategy_timeseries(results_dir: str, m: int, out_dir: str):
             color=color, alpha=0.1,
         )
 
-    ax.set_xlabel("Time (hours)")
-    ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$")
-    ax.legend(loc="upper left")
+    ax.set_xlabel("Time (hours)", fontsize=20)
+    ax.set_ylabel(r"$\bar{\kappa}_c / P_{\max}$", fontsize=20)
+    ax.legend(loc="upper left", fontsize=18)
     ax.grid(True, alpha=0.3)
 
     # Day markers
@@ -177,9 +185,9 @@ def plot_4b3_kc_vs_m(summary_path: str, out_dir: str):
 def plot_4b3_combined(results_dir: str, out_dir: str):
     """Fig 4b3 combined: all 3 smart strategies + analytic/empirical bounds."""
     strategies = [
-        ("max_power", "Max power", STRATEGY_COLORS["max_power"], "o-"),
+        ("max_power", "Max Power", STRATEGY_COLORS["max_power"], "o-"),
         ("score", "Score", STRATEGY_COLORS["score"], "s-"),
-        ("pcc_direct", "PCC direct", STRATEGY_COLORS["pcc_direct"], "^-"),
+        ("pcc_direct", "PCC Direct", STRATEGY_COLORS["pcc_direct"], "^-"),
     ]
 
     fig, ax = plt.subplots()

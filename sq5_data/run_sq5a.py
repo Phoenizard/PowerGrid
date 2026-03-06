@@ -322,6 +322,7 @@ def plot_results(output_path: str, figures_dir: str):
 
     # ---- Fig 5A-1: kc(noon) vs gamma ----
     fig, ax = plt.subplots(figsize=(7, 5))
+    ax.tick_params(labelsize=13)
     ax.plot(m0["gamma"], m0["kc_mean"], "b-o", label="m = 0 (baseline)", markersize=4)
     ax.fill_between(
         m0["gamma"],
@@ -336,9 +337,9 @@ def plot_results(output_path: str, figures_dir: str):
         m4["kc_mean"] + m4["kc_std"],
         alpha=0.2, color="red",
     )
-    ax.set_xlabel(r"Damping parameter $\gamma$", fontsize=12)
-    ax.set_ylabel(r"Critical coupling $\bar{\kappa}_c$ (noon)", fontsize=12)
-    ax.legend(fontsize=11)
+    ax.set_xlabel(r"Damping parameter $\gamma$", fontsize=14)
+    ax.set_ylabel(r"Critical coupling $\bar{\kappa}_c$ (noon)", fontsize=14)
+    ax.legend(fontsize=13)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
     path_1 = os.path.join(figures_dir, "fig_5a1_kc_vs_gamma.png")
@@ -353,14 +354,15 @@ def plot_results(output_path: str, figures_dir: str):
     delta_err = np.sqrt(merged["kc_std_m0"]**2 + merged["kc_std_m4"]**2)
 
     fig, ax = plt.subplots(figsize=(7, 5))
+    ax.tick_params(labelsize=13)
     ax.errorbar(
         merged["gamma"], delta_kc, yerr=delta_err,
         fmt="g-^", capsize=3, markersize=5, label=r"$\Delta\bar{\kappa}_c$"
     )
     ax.axhline(0, color="gray", linestyle="--", linewidth=0.8)
-    ax.set_xlabel(r"Damping parameter $\gamma$", fontsize=12)
-    ax.set_ylabel(r"$\Delta\bar{\kappa}_c = \bar{\kappa}_c(m{=}0) - \bar{\kappa}_c(m{=}4)$", fontsize=12)
-    ax.legend(fontsize=11)
+    ax.set_xlabel(r"Damping parameter $\gamma$", fontsize=14)
+    ax.set_ylabel(r"$\Delta\bar{\kappa}_c = \bar{\kappa}_c(m{=}0) - \bar{\kappa}_c(m{=}4)$", fontsize=14)
+    ax.legend(fontsize=13)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
     path_2 = os.path.join(figures_dir, "fig_5a2_delta_kc_vs_gamma.png")
@@ -373,15 +375,16 @@ def plot_results(output_path: str, figures_dir: str):
     rel_err = delta_err / merged["kc_mean_m0"] * 100
 
     fig, ax = plt.subplots(figsize=(7, 5))
+    ax.tick_params(labelsize=13)
     ax.errorbar(
         merged["gamma"], rel_reduction, yerr=rel_err,
         fmt="m-D", capsize=3, markersize=5,
         label=r"$\Delta\bar{\kappa}_c / \bar{\kappa}_c(m{=}0) \times 100\%$"
     )
     ax.axhline(0, color="gray", linestyle="--", linewidth=0.8)
-    ax.set_xlabel(r"Damping parameter $\gamma$", fontsize=12)
-    ax.set_ylabel("Relative reduction (%)", fontsize=12)
-    ax.legend(fontsize=11)
+    ax.set_xlabel(r"Damping parameter $\gamma$", fontsize=14)
+    ax.set_ylabel("Relative reduction (%)", fontsize=14)
+    ax.legend(fontsize=13)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
     path_3 = os.path.join(figures_dir, "fig_5a3_relative_reduction.png")
